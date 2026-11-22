@@ -1,0 +1,805 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lembra Aí</title>
+<style>
+  :root { --verde:#1f8f5f; --verde-escuro:#17734c; --verde-claro:#e7f5ee; --cinza:#6b7280; --borda:#e5e7eb; --fundo:#f6f7f9; --vermelho:#c0392b; --texto:#111827; }
+  * { box-sizing:border-box; }
+  [hidden] { display:none !important; }
+  .ic { width:1.15em; height:1.15em; vertical-align:-0.2em; flex:none; }
+  .ic-g { width:44px; height:44px; color:var(--verde); }
+  button .ic { margin-right:2px; }
+  body { margin:0; font-family:system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:var(--fundo); color:var(--texto); }
+  button { font:inherit; cursor:pointer; border:0; border-radius:8px; }
+  input, select, textarea { width:100%; padding:10px 11px; border:1px solid var(--borda); border-radius:9px; font:inherit; font-size:14px; background:#fff; color:var(--texto); }
+  input:focus, select:focus, textarea:focus { outline:none; border-color:var(--verde); box-shadow:0 0 0 3px rgba(31,143,95,.15); }
+  label.campo { display:block; font-size:13px; color:var(--cinza); margin:14px 0 5px; }
+
+  /* ---------- topo ---------- */
+  header { background:#fff; border-bottom:1px solid var(--borda); padding:12px 20px; display:flex; align-items:center; justify-content:space-between; gap:12px; position:sticky; top:0; z-index:20; }
+  header h1 { font-size:18px; margin:0; display:flex; align-items:center; gap:8px; }
+  .marca-ic { width:32px; height:32px; border-radius:9px; background:var(--verde-claro); color:var(--verde); display:grid; place-items:center; }
+  .topo-dir { display:flex; align-items:center; gap:10px; }
+  .selo { font-size:12px; padding:4px 10px; border-radius:999px; background:#fef3c7; color:#92400e; white-space:nowrap; }
+  .selo.ok { background:var(--verde-claro); color:var(--verde); }
+  .btn-admin { display:inline-flex; align-items:center; gap:5px; background:#fff; border:1px solid var(--borda); padding:6px 10px; font-size:13px; }
+  .conta { position:relative; }
+  .avatar { width:34px; height:34px; border-radius:50%; background:var(--verde); color:#fff; font-weight:600; }
+  .menu-conta { position:absolute; right:0; top:42px; min-width:240px; background:#fff; border:1px solid var(--borda); border-radius:12px; padding:14px; box-shadow:0 12px 30px rgba(0,0,0,.12); display:flex; flex-direction:column; gap:3px; animation:abre .18s ease-out; transform-origin:top right; }
+  .menu-conta span { font-size:13px; color:var(--cinza); word-break:break-all; }
+  .menu-conta .linha-tel { margin:8px 0 10px; font-size:13px; }
+  .menu-conta button { display:flex; align-items:center; justify-content:center; gap:6px; background:#fff; border:1px solid var(--borda); padding:8px; font-size:13px; }
+  .menu-conta .sair { color:var(--vermelho); margin-top:4px; }
+  @keyframes abre { from { opacity:0; transform:scale(.95) translateY(-4px); } to { opacity:1; transform:none; } }
+
+  main { max-width:880px; margin:0 auto; padding:22px 20px 60px; }
+  .card { background:#fff; border:1px solid var(--borda); border-radius:14px; padding:20px; }
+  .titulo-secao { display:flex; align-items:center; justify-content:space-between; gap:10px; margin:28px 0 12px; }
+  .titulo-secao h2 { font-size:17px; margin:0; }
+  .primario { background:var(--verde); color:#fff; padding:10px 16px; font-weight:500; transition:background .2s; }
+  .primario:hover { background:var(--verde-escuro); }
+  .primario:disabled { opacity:.65; cursor:wait; }
+  .secundario { background:#fff; border:1px solid var(--borda); padding:10px 16px; }
+  .msg { font-size:13px; min-height:18px; margin-top:10px; }
+  .msg.erro { color:var(--vermelho); } .msg.ok { color:var(--verde); }
+
+  /* ---------- confirmar número ---------- */
+  .confirmar { display:grid; grid-template-columns: 1fr 1.1fr; gap:24px; align-items:center; animation:sobe .4s ease-out; }
+  @media (max-width: 720px) { .confirmar { grid-template-columns:1fr; } }
+  .confirmar h2 { margin:0 0 6px; font-size:19px; }
+  .confirmar p { margin:0; color:#374151; font-size:14px; line-height:1.55; }
+  .confirmar .lado { background:var(--verde-claro); border-radius:12px; padding:18px; font-size:14px; color:#14532d; line-height:1.6; }
+  .linha-form { display:flex; gap:8px; margin-top:6px; }
+  .linha-form input { flex:1; }
+  .codigo { letter-spacing:.5em; font-size:22px !important; text-align:center; font-variant-numeric:tabular-nums; }
+  .link { background:none; color:var(--verde); padding:0; font-size:13px; }
+  @keyframes sobe { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+
+  /* ---------- lembretes ---------- */
+  .grade { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:14px; }
+  .lembrete { background:#fff; border:1px solid var(--borda); border-radius:14px; padding:16px; display:flex; flex-direction:column; gap:10px; animation:sobe .35s ease-out both; transition:box-shadow .2s, transform .2s; }
+  .lembrete:hover { box-shadow:0 8px 24px rgba(17,24,39,.07); transform:translateY(-1px); }
+  .lembrete.pausado { opacity:.6; }
+  .lembrete .cab { display:flex; gap:12px; align-items:flex-start; }
+  .lembrete .icone { width:44px; height:44px; flex:none; border-radius:12px; background:var(--fundo); display:grid; place-items:center; }
+  .lembrete .icone .ic { width:22px; height:22px; }
+  .tipo-luz { background:#fef9c3 !important; color:#a16207; } .tipo-agua { background:#dbeafe !important; color:#1d4ed8; }
+  .tipo-internet { background:#ede9fe !important; color:#6d28d9; } .tipo-aluguel { background:#ffedd5 !important; color:#c2410c; }
+  .tipo-cartao { background:#fce7f3 !important; color:#be185d; } .tipo-boleto { background:#e0f2fe !important; color:#0369a1; }
+  .tipo-outro { background:#f3f4f6 !important; color:#4b5563; }
+  .dica-paguei { display:flex; align-items:center; gap:8px; font-size:13px; color:#374151; background:#fff; border:1px dashed var(--borda); border-radius:10px; padding:10px 12px; margin-bottom:14px; }
+  .dica-paguei .ic { color:var(--verde); }
+  .faixa-pago { display:flex; align-items:center; gap:6px; font-size:13px; color:var(--verde); background:var(--verde-claro); border-radius:8px; padding:7px 10px; animation:sobe .3s ease-out; }
+  .faixa-pago .link { margin-left:auto; color:var(--cinza); text-decoration:underline; }
+  .mini { display:inline-flex; align-items:center; gap:4px; }
+  .mini.pagar { background:var(--verde); border-color:var(--verde); color:#fff; }
+  .lembrete h3 { margin:0; font-size:15px; }
+  .lembrete .valor { font-size:14px; color:var(--cinza); margin-top:2px; }
+  .lembrete .info { font-size:13px; color:#374151; line-height:1.6; }
+  .lembrete .info b { font-weight:600; }
+  .tag { font-size:11px; padding:2px 8px; border-radius:999px; background:#f3f4f6; color:var(--cinza); margin-left:auto; white-space:nowrap; }
+  .lembrete .acoes { display:flex; gap:6px; flex-wrap:wrap; margin-top:auto; padding-top:6px; border-top:1px solid var(--borda); }
+  .mini { padding:6px 10px; font-size:12px; background:#fff; border:1px solid var(--borda); }
+  .mini.perigo { color:var(--vermelho); }
+
+  .vazio { text-align:center; padding:34px 20px; }
+  .vazio .grande { display:flex; justify-content:center; }
+  .vazio h3 { margin:10px 0 4px; }
+  .vazio p { margin:0 0 16px; color:var(--cinza); font-size:14px; }
+  .atalhos { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; }
+  .atalhos button { display:inline-flex; align-items:center; gap:6px; background:#fff; border:1px solid var(--borda); padding:8px 12px; border-radius:999px; font-size:14px; transition:border-color .2s, transform .15s; }
+  .atalhos button:hover { border-color:var(--verde); transform:translateY(-1px); }
+
+  .historico { list-style:none; margin:0; padding:0; }
+  .historico li { display:flex; gap:12px; padding:12px 0; border-bottom:1px solid var(--borda); font-size:13px; }
+  .historico li:last-child { border-bottom:0; }
+  .historico .quando { color:var(--cinza); white-space:nowrap; min-width:92px; }
+  .historico .txt { flex:1; white-space:pre-wrap; word-break:break-word; color:#374151; }
+  .historico .st-erro, .historico .st-expirado { color:var(--vermelho); }
+
+  /* ---------- modais ---------- */
+  dialog { border:0; border-radius:16px; padding:0; width:min(560px, 95vw); box-shadow:0 24px 60px rgba(0,0,0,.25); }
+  dialog[open] { animation:modal .28s cubic-bezier(.34,1.4,.64,1); }
+  dialog::backdrop { background:rgba(17,24,39,.45); }
+  @keyframes modal { from { opacity:0; transform:translateY(12px) scale(.97); } to { opacity:1; transform:none; } }
+  dialog form { padding:22px; max-height:90vh; overflow-y:auto; }
+  dialog h2 { margin:0 0 4px; font-size:18px; }
+  .sub { font-size:13px; color:var(--cinza); margin:0 0 4px; }
+  .acoes-modal { display:flex; gap:8px; margin-top:18px; }
+  .acoes-modal button { flex:1; }
+
+  .chips { display:flex; flex-wrap:wrap; gap:6px; }
+  .chip { display:inline-flex; align-items:center; gap:5px; background:#fff; border:1px solid var(--borda); padding:7px 11px; border-radius:999px; font-size:13px; transition:all .15s; }
+  .chip.on { background:var(--verde); border-color:var(--verde); color:#fff; }
+  .dois { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .segmento { display:inline-flex; background:#f3f4f6; border-radius:9px; padding:3px; }
+  .segmento button { background:none; padding:7px 14px; font-size:13px; color:var(--cinza); border-radius:7px; }
+  .segmento button.on { background:#fff; color:var(--texto); box-shadow:0 1px 3px rgba(0,0,0,.1); }
+  .ajuda-vars { font-size:12px; color:var(--cinza); margin-top:5px; line-height:1.6; }
+  .ajuda-vars code { background:#f3f4f6; padding:1px 5px; border-radius:4px; cursor:pointer; }
+
+  .linha-msg { display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; }
+  .btn-ia { display:inline-flex; align-items:center; gap:5px;
+    background:linear-gradient(135deg, #7c3aed, #db2777); color:#fff; padding:8px 13px; font-size:13px; font-weight:500;
+    border-radius:999px; box-shadow:0 4px 14px rgba(124,58,237,.25); transition:transform .15s, box-shadow .15s;
+  }
+  .btn-ia:hover { transform:translateY(-1px); box-shadow:0 6px 18px rgba(124,58,237,.35); }
+  .btn-ia:disabled { opacity:.7; cursor:wait; transform:none; }
+  .painel-ia { margin-top:12px; border:1px solid #e9d5ff; background:#faf5ff; border-radius:12px; padding:12px; animation:sobe .3s ease-out; }
+  .tons { display:flex; align-items:center; gap:6px; flex-wrap:wrap; font-size:13px; color:var(--cinza); margin-bottom:10px; }
+  .tons .chip.on { background:#7c3aed; border-color:#7c3aed; }
+  .sugestao {
+    display:block; width:100%; text-align:left; background:#fff; border:1px solid #e9d5ff; border-radius:10px;
+    padding:10px 12px; margin-top:8px; font-size:13px; line-height:1.45; color:var(--texto);
+    animation:sobe .35s ease-out both; transition:border-color .15s, box-shadow .15s;
+  }
+  .sugestao:hover { border-color:#7c3aed; box-shadow:0 2px 10px rgba(124,58,237,.12); }
+  .sugestao .usar { display:block; font-size:11px; color:#7c3aed; margin-top:4px; font-weight:500; }
+  .sugestao.escolhida { border-color:#7c3aed; background:#f5f3ff; }
+  .esqueleto { height:54px; border-radius:10px; margin-top:8px; background:linear-gradient(90deg, #f3e8ff 25%, #faf5ff 50%, #f3e8ff 75%); background-size:200% 100%; animation:brilho 1.1s linear infinite; }
+  @keyframes brilho { from { background-position:200% 0; } to { background-position:-200% 0; } }
+  .aviso-ia { font-size:12px; color:var(--cinza); margin-top:8px; }
+  .aviso-ia:empty { display:none; }
+  .previa { margin-top:16px; background:#e7ded3; border-radius:12px; padding:14px; }
+  .previa .rotulo { font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:#6b5e4f; margin-bottom:8px; }
+  .bolha { background:#fff; border-radius:0 10px 10px 10px; padding:9px 11px 18px; font-size:14px; line-height:1.45; max-width:92%; position:relative; white-space:pre-wrap; word-break:break-word; box-shadow:0 1px 1px rgba(0,0,0,.08); transition:opacity .2s; }
+  .bolha .hora { position:absolute; right:9px; bottom:4px; font-size:10px; color:#8696a0; }
+  .bolha.carregando { opacity:.55; }
+
+  #admin .qr { width:240px; height:240px; border-radius:12px; border:1px solid var(--borda); }
+  .corpo-admin { text-align:center; min-height:180px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding-top:8px; }
+  .corpo-admin ol { text-align:left; font-size:13px; color:#374151; margin:0; padding-left:20px; line-height:1.6; }
+  .numeros { display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; margin-top:16px; }
+  .numeros div { background:var(--fundo); border-radius:10px; padding:10px; text-align:center; }
+  .numeros b { display:block; font-size:20px; }
+  .numeros span { font-size:11px; color:var(--cinza); }
+  .girando { width:32px; height:32px; border:3px solid var(--borda); border-top-color:var(--verde); border-radius:50%; animation:gira .8s linear infinite; }
+  @keyframes gira { to { transform:rotate(360deg); } }
+
+  .toast { display:flex; align-items:center; gap:8px; position:fixed; left:50%; bottom:24px; transform:translate(-50%, 20px); background:#111827; color:#fff; padding:11px 16px; border-radius:10px; font-size:14px; opacity:0; transition:opacity .25s, transform .25s; z-index:100; pointer-events:none; max-width:90vw; }
+  .toast.on { opacity:1; transform:translate(-50%, 0); }
+  .toast.erro { background:var(--vermelho); }
+
+  @media (max-width: 560px) {
+    header h1 span.nome-app { display:none; }
+    .txt-admin { display:none; }
+    .btn-admin { padding:7px; }
+    .dois { grid-template-columns:1fr; }
+    .numeros { grid-template-columns:repeat(2, 1fr); }
+  }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation:none !important; transition:none !important; } }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-sino" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></symbol>
+  <symbol id="i-luz" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2z"/></symbol>
+  <symbol id="i-agua" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.7 6.3 9.2a7.5 7.5 0 1 0 11.4 0z"/></symbol>
+  <symbol id="i-internet" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a15 15 0 0 1 20 0"/><path d="M5 12.5a10 10 0 0 1 14 0"/><path d="M8.5 16a5 5 0 0 1 7 0"/><circle cx="12" cy="19.5" r="1" fill="currentColor"/></symbol>
+  <symbol id="i-aluguel" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/></symbol>
+  <symbol id="i-cartao" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M6 15h4"/></symbol>
+  <symbol id="i-boleto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 2h14v20l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M9 7h6M9 11h6M9 15h4"/></symbol>
+  <symbol id="i-outro" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-12a7 7 0 0 1 14 0c0 5.8-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/></symbol>
+  <symbol id="i-ia" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7-4.7-1.8 4.7-1.8z"/><path d="M19 15l.8 2.2 2.2.8-2.2.8L19 21l-.8-2.2-2.2-.8 2.2-.8z"/></symbol>
+  <symbol id="i-celular" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></symbol>
+  <symbol id="i-celular-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/><path d="M3 3l18 18"/></symbol>
+  <symbol id="i-ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m8 12 3 3 5-6"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></symbol>
+  <symbol id="i-alerta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 20h20z"/><path d="M12 10v4"/><path d="M12 17h.01"/></symbol>
+  <symbol id="i-calendario" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></symbol>
+  <symbol id="i-amigavel" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><path d="M9 9h.01M15 9h.01"/></symbol>
+  <symbol id="i-divertido" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M7.5 13h9a4.5 4.5 0 0 1-9 0z"/><path d="M8 9.5c.5-.7 1.5-.7 2 0M14 9.5c.5-.7 1.5-.7 2 0"/></symbol>
+  <symbol id="i-direto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></symbol>
+  <symbol id="i-formal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><path d="M3 12h18"/></symbol>
+  <symbol id="i-desfazer" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></symbol>
+  <symbol id="i-enviar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></symbol>
+  <symbol id="i-editar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></symbol>
+  <symbol id="i-pausar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></symbol>
+  <symbol id="i-ativar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4l13 8-13 8z"/></symbol>
+  <symbol id="i-lixo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M6 6l1 15h10l1-15"/></symbol>
+  <symbol id="i-mais" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-sair" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></symbol>
+  <symbol id="i-conversa" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.5 7.2L4 21l1.8-5A8 8 0 1 1 21 12z"/></symbol>
+  <symbol id="i-pago" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/></symbol>
+</svg>
+<header>
+  <h1><span class="marca-ic"><svg class="ic"><use href="#i-sino"/></svg></span> <span class="nome-app">Lembra Aí</span></h1>
+  <div class="topo-dir">
+    <span class="selo" id="selo">...</span>
+    <button type="button" class="btn-admin" id="btnAdmin" hidden><svg class="ic"><use href="#i-celular"/></svg><span class="txt-admin">Número do sistema</span></button>
+    <div class="conta">
+      <button type="button" class="avatar" id="btnConta" title="Minha conta">?</button>
+      <div class="menu-conta" id="menuConta" hidden>
+        <strong id="contaNome"></strong>
+        <span id="contaEmail"></span>
+        <div class="linha-tel" id="contaTel"></div>
+        <button type="button" id="btnTrocarTel">Trocar meu número</button>
+        <button type="button" class="sair" id="btnSair"><svg class="ic"><use href="#i-sair"/></svg> Sair</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- Passo obrigatório: confirmar o número -->
+  <section class="card confirmar" id="secConfirmar" hidden>
+    <div>
+      <h2 id="confTitulo">Primeiro, confirme seu WhatsApp</h2>
+      <p>É nele que os lembretes vão chegar. A gente manda um código de 6 números pra confirmar que o número é seu.</p>
+
+      <div id="etapaNumero">
+        <label class="campo" for="inTelefone">Seu WhatsApp com DDD</label>
+        <div class="linha-form">
+          <input id="inTelefone" inputmode="tel" placeholder="45 99999-9999" autocomplete="tel-national">
+          <button type="button" class="primario" id="btnCodigo">Enviar código</button>
+        </div>
+      </div>
+
+      <div id="etapaCodigo" hidden>
+        <label class="campo" for="inCodigo">Código que chegou no WhatsApp</label>
+        <div class="linha-form">
+          <input id="inCodigo" class="codigo" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000">
+          <button type="button" class="primario" id="btnConfirmar">Confirmar</button>
+        </div>
+        <p style="margin-top:8px"><button type="button" class="link" id="btnOutroNumero">Usar outro número</button> · <button type="button" class="link" id="btnReenviar">Reenviar código</button></p>
+      </div>
+      <div class="msg" id="msgConfirmar"></div>
+      <p style="margin-top:4px" id="cancelarTroca" hidden><button type="button" class="link" id="btnCancelarTroca">Cancelar e manter o número atual</button></p>
+    </div>
+    <div class="lado" id="ladoConfirmar">
+      <b><svg class="ic"><use href="#i-luz"/></svg> Dica:</b> salve o número do Lembra Aí nos seus contatos. Assim os avisos aparecem com nome e não correm risco de cair como spam.
+      <div id="numeroSistema" style="margin-top:8px"></div>
+    </div>
+  </section>
+
+  <!-- Lembretes -->
+  <section id="secLembretes" hidden>
+    <div class="titulo-secao" style="margin-top:0">
+      <h2>Meus lembretes</h2>
+      <button type="button" class="primario" id="btnNovo"><svg class="ic"><use href="#i-mais"/></svg> Novo lembrete</button>
+    </div>
+    <div class="dica-paguei"><svg class="ic"><use href="#i-conversa"/></svg><span>Quando pagar uma conta, é só responder <b>paguei</b> no aviso do WhatsApp — eu paro de lembrar até o próximo vencimento.</span></div>
+    <div id="lista"></div>
+
+    <div class="titulo-secao"><h2>Últimos avisos</h2></div>
+    <div class="card" style="padding:6px 18px"><ul class="historico" id="historico"></ul></div>
+  </section>
+</main>
+
+<!-- Novo / editar lembrete -->
+<dialog id="editor">
+  <form id="formLembrete" novalidate>
+    <h2 id="edTitulo">Novo lembrete</h2>
+    <p class="sub">A gente te avisa no WhatsApp antes de vencer.</p>
+
+    <label class="campo">O que é?</label>
+    <div class="chips" id="chipsTipo"></div>
+
+    <div class="dois">
+      <div>
+        <label class="campo" for="edNome">Nome</label>
+        <input id="edNome" maxlength="60" placeholder="Conta de luz">
+      </div>
+      <div>
+        <label class="campo" for="edValor">Valor (opcional)</label>
+        <input id="edValor" inputmode="decimal" placeholder="R$ 0,00">
+      </div>
+    </div>
+
+    <label class="campo">Quando vence?</label>
+    <div class="segmento" id="segFreq">
+      <button type="button" data-v="mensal" class="on">Todo mês</button>
+      <button type="button" data-v="unica">Uma vez só</button>
+    </div>
+    <div class="dois" style="margin-top:10px">
+      <div id="blocoDia">
+        <select id="edDia"></select>
+      </div>
+      <div id="blocoData" hidden>
+        <input id="edData" type="date">
+      </div>
+      <div>
+        <input id="edHorario" type="time" value="09:00" title="Horário do aviso">
+      </div>
+    </div>
+
+    <label class="campo">Me avisar</label>
+    <div class="chips" id="chipsAvisos"></div>
+
+    <label class="campo">Mensagem</label>
+    <div class="linha-msg">
+      <div class="segmento" id="segMsg">
+        <button type="button" data-v="padrao" class="on">Mensagem padrão</button>
+        <button type="button" data-v="minha">Escrever a minha</button>
+      </div>
+      <button type="button" class="btn-ia" id="btnIa"><svg class="ic"><use href="#i-ia"/></svg> Sugerir com IA</button>
+    </div>
+    <div class="painel-ia" id="painelIa" hidden>
+      <div class="tons" id="tons">
+        <span>Tom:</span>
+        <button type="button" class="chip on" data-tom="amigavel"><svg class="ic"><use href="#i-amigavel"/></svg> Amigável</button>
+        <button type="button" class="chip" data-tom="divertido"><svg class="ic"><use href="#i-divertido"/></svg> Divertido</button>
+        <button type="button" class="chip" data-tom="direto"><svg class="ic"><use href="#i-direto"/></svg> Direto</button>
+        <button type="button" class="chip" data-tom="formal"><svg class="ic"><use href="#i-formal"/></svg> Formal</button>
+      </div>
+      <div id="sugestoes"></div>
+      <div class="aviso-ia" id="avisoIa"></div>
+    </div>
+    <div id="blocoMsg" hidden style="margin-top:10px">
+      <textarea id="edMensagem" rows="3" maxlength="600" placeholder="Ex.: Ei {nome}, {conta} vence {quando}! Não esquece!"></textarea>
+      <div class="ajuda-vars">Clique pra inserir: <code data-var="{nome}">{nome}</code> <code data-var="{conta}">{conta}</code> <code data-var="{valor}">{valor}</code> <code data-var="{vencimento}">{vencimento}</code> <code data-var="{quando}">{quando}</code></div>
+    </div>
+
+    <div class="previa">
+      <div class="rotulo">Como vai chegar</div>
+      <div class="bolha" id="bolha">...<span class="hora">09:00</span></div>
+    </div>
+
+    <div class="acoes-modal">
+      <button type="button" class="secundario" id="edFechar">Cancelar</button>
+      <button type="submit" class="primario" id="edSalvar">Salvar</button>
+    </div>
+    <div class="msg" id="edMsg"></div>
+  </form>
+</dialog>
+
+<!-- Admin: número do sistema -->
+<dialog id="admin">
+  <form method="dialog">
+    <h2>Número do sistema</h2>
+    <p class="sub">É o WhatsApp que manda os lembretes pra todo mundo. Use um chip só pra isso.</p>
+    <div class="corpo-admin" id="corpoAdmin"></div>
+    <div class="numeros" id="numerosAdmin"></div>
+    <div class="acoes-modal"><button class="secundario">Fechar</button></div>
+  </form>
+</dialog>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+
+const TIPOS = {
+  luz: { icone: 'luz', titulo: 'Conta de luz', curto: 'Luz' },
+  agua: { icone: 'agua', titulo: 'Conta de água', curto: 'Água' },
+  internet: { icone: 'internet', titulo: 'Internet', curto: 'Internet' },
+  aluguel: { icone: 'aluguel', titulo: 'Aluguel', curto: 'Aluguel' },
+  cartao: { icone: 'cartao', titulo: 'Fatura do cartão', curto: 'Cartão' },
+  boleto: { icone: 'boleto', titulo: 'Boleto', curto: 'Boleto' },
+  outro: { icone: 'outro', titulo: '', curto: 'Outro' },
+};
+const icone = (nome, cls = '') => `<svg class="ic${cls ? ' ' + cls : ''}"><use href="#i-${nome}"/></svg>`;
+const AVISOS = [[15, '15 dias antes'], [10, '10 dias antes'], [7, '7 dias antes'], [5, '5 dias antes'], [3, '3 dias antes'], [2, '2 dias antes'], [1, '1 dia antes'], [0, 'No dia']];
+
+// Sessão expirou -> login
+const fetchOriginal = window.fetch.bind(window);
+window.fetch = async (...args) => {
+  const r = await fetchOriginal(...args);
+  if (r.status === 401) location.replace('/login');
+  return r;
+};
+async function api(url, opcoes = {}) {
+  const r = await fetch(url, { headers: { 'Content-Type': 'application/json' }, ...opcoes, body: opcoes.body ? JSON.stringify(opcoes.body) : undefined });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.erro || 'Algo deu errado');
+  return j;
+}
+
+let toastTimer;
+function toast(texto, erro = false, ic = null) {
+  const t = $('toast');
+  t.innerHTML = (ic || erro ? icone(erro ? 'alerta' : ic) + ' ' : '') + esc(texto); t.className = 'toast on' + (erro ? ' erro' : '');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => (t.className = 'toast'), 3200);
+}
+function msg(id, texto, tipo = 'erro') { $(id).textContent = texto; $(id).className = 'msg ' + tipo; }
+
+const fmtTel = (n) => {
+  const d = String(n || '').replace(/\D/g, '').replace(/^55(?=\d{10,11}$)/, '');
+  return d.length === 11 ? `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}` : d.length === 10 ? `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}` : n;
+};
+const fmtValor = (v) => (v === null || v === undefined ? '' : Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }));
+const fmtDataCurta = (iso) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
+const fmtQuando = (iso) => new Date(iso).toLocaleString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+function textoAvisos(lista, horario) {
+  const nomes = [...lista].sort((a, b) => b - a).map((d) => (d === 0 ? 'no dia' : d === 1 ? '1 dia antes' : `${d} dias antes`));
+  const junto = nomes.length > 1 ? nomes.slice(0, -1).join(', ') + ' e ' + nomes.at(-1) : nomes[0];
+  return `${junto}, às ${String(horario).slice(0, 5)}`;
+}
+
+const negrito = (t) => esc(t).replace(/\*([^*\n]+)\*/g, '<b>$1</b>'); // *texto* do WhatsApp em negrito
+
+// =============== estado ===============
+let usuario = null;
+let sistema = { online: false, numero: null };
+let lembretes = [];
+let trocandoNumero = false;
+
+async function carregarSistema() {
+  try {
+    sistema = await api('/api/sistema');
+    $('selo').textContent = sistema.online ? '● avisos ativos' : 'sistema fora do ar';
+    $('selo').className = 'selo' + (sistema.online ? ' ok' : '');
+    $('numeroSistema').innerHTML = sistema.numero ? `Número do Lembra Aí: <b>+${esc(sistema.numero.slice(0, 2))} ${esc(fmtTel(sistema.numero))}</b>` : '';
+  } catch { /* mantém o último */ }
+}
+
+function desenharTela() {
+  const confirmado = Boolean(usuario.telefone);
+  $('secConfirmar').hidden = confirmado && !trocandoNumero;
+  $('secLembretes').hidden = !confirmado || trocandoNumero;
+  $('confTitulo').textContent = trocandoNumero ? 'Trocar meu número' : 'Primeiro, confirme seu WhatsApp';
+  $('cancelarTroca').hidden = !(trocandoNumero && confirmado);
+  $('contaTel').innerHTML = confirmado ? `${icone('celular')} ${esc(fmtTel(usuario.telefone))} <span style="color:var(--verde)">${icone('check')} confirmado</span>` : `${icone('celular')} número não confirmado`;
+  if (confirmado && !trocandoNumero) { carregarLembretes(); carregarHistorico(); }
+}
+
+// =============== confirmar número ===============
+function mostrarEtapa(codigo) {
+  $('etapaNumero').hidden = codigo; $('etapaCodigo').hidden = !codigo;
+  setTimeout(() => (codigo ? $('inCodigo') : $('inTelefone')).focus(), 50);
+}
+
+async function pedirCodigo() {
+  const telefone = $('inTelefone').value.replace(/\D/g, '');
+  if (telefone.length < 10) return msg('msgConfirmar', 'Digite o número com DDD');
+  $('btnCodigo').disabled = true; msg('msgConfirmar', 'Enviando...', '');
+  try {
+    await api('/api/telefone/codigo', { method: 'POST', body: { telefone } });
+    msg('msgConfirmar', `Código enviado pro ${fmtTel(telefone)}. Confira seu WhatsApp.`, 'ok');
+    mostrarEtapa(true);
+  } catch (e) { msg('msgConfirmar', e.message); }
+  $('btnCodigo').disabled = false;
+}
+$('btnCodigo').onclick = pedirCodigo;
+$('btnReenviar').onclick = pedirCodigo;
+$('inTelefone').onkeydown = (e) => { if (e.key === 'Enter') pedirCodigo(); };
+$('btnOutroNumero').onclick = () => { mostrarEtapa(false); msg('msgConfirmar', '', ''); };
+
+async function confirmarCodigo() {
+  const codigo = $('inCodigo').value.replace(/\D/g, '');
+  if (codigo.length !== 6) return msg('msgConfirmar', 'O código tem 6 números');
+  $('btnConfirmar').disabled = true;
+  try {
+    const j = await api('/api/telefone/confirmar', { method: 'POST', body: { codigo } });
+    usuario.telefone = j.telefone;
+    trocandoNumero = false;
+    $('inCodigo').value = ''; mostrarEtapa(false); msg('msgConfirmar', '', '');
+    toast('Número confirmado!', false, 'ok');
+    desenharTela();
+  } catch (e) { msg('msgConfirmar', e.message); }
+  $('btnConfirmar').disabled = false;
+}
+$('btnConfirmar').onclick = confirmarCodigo;
+$('inCodigo').oninput = () => { $('inCodigo').value = $('inCodigo').value.replace(/\D/g, '').slice(0, 6); if ($('inCodigo').value.length === 6) confirmarCodigo(); };
+$('btnTrocarTel').onclick = () => { $('menuConta').hidden = true; trocandoNumero = true; mostrarEtapa(false); desenharTela(); };
+$('btnCancelarTroca').onclick = () => { trocandoNumero = false; desenharTela(); };
+
+// =============== lista de lembretes ===============
+async function carregarLembretes() {
+  try { lembretes = await api('/api/lembretes'); } catch (e) { toast(e.message, true); return; }
+  desenharLista();
+}
+
+function desenharLista() {
+  if (!lembretes.length) {
+    $('lista').innerHTML = `<div class="card vazio">
+      <div class="grande">${icone('calendario', 'ic-g')}</div>
+      <h3>Nenhum lembrete ainda</h3>
+      <p>Escolha uma conta pra começar:</p>
+      <div class="atalhos">${Object.entries(TIPOS).filter(([k]) => k !== 'outro')
+        .map(([k, t]) => `<button type="button" data-tipo="${k}">${icone(t.icone)} ${t.curto}</button>`).join('')}</div>
+    </div>`;
+    $('lista').querySelectorAll('[data-tipo]').forEach((b) => (b.onclick = () => abrirEditor(null, b.dataset.tipo)));
+    return;
+  }
+  $('lista').innerHTML = '<div class="grade">' + lembretes.map((l, i) => {
+    const t = TIPOS[l.tipo] || TIPOS.outro;
+    const vence = l.frequencia === 'mensal' ? `todo dia <b>${l.dia}</b>` : `em <b>${fmtDataCurta(l.data)}</b>`;
+    const pago = l.atual_pago
+      ? `<div class="faixa-pago">${icone('check')} Pagamento feito (venc. ${fmtDataCurta(l.vencimento_atual)})
+          <button type="button" class="link" data-acao="despagar" data-id="${l.id}" data-venc="${l.vencimento_atual}">desfazer</button></div>`
+      : '';
+    return `<article class="lembrete ${l.ativo ? '' : 'pausado'}" style="animation-delay:${i * 40}ms">
+      <div class="cab">
+        <div class="icone tipo-${l.tipo}">${icone(t.icone)}</div>
+        <div style="min-width:0">
+          <h3>${esc(l.titulo)}</h3>
+          ${l.valor !== null ? `<div class="valor">${fmtValor(l.valor)}</div>` : ''}
+        </div>
+        ${l.ativo ? '' : '<span class="tag">pausado</span>'}
+      </div>
+      ${pago}
+      <div class="info">
+        Vence ${vence}<br>
+        Aviso ${esc(textoAvisos(l.avisos, l.horario))}<br>
+        ${l.ativo && l.proximo_aviso ? `Próximo: <b>${fmtQuando(l.proximo_aviso)}</b>` : l.ativo ? '<span style="color:var(--cinza)">Sem avisos pendentes</span>' : ''}
+      </div>
+      <div class="acoes">
+        ${l.ativo && !l.atual_pago && l.proximo_vencimento ? `<button type="button" class="mini pagar" data-acao="pagar" data-id="${l.id}">${icone('pago')} Já paguei</button>` : ''}
+        <button type="button" class="mini" data-acao="editar" data-id="${l.id}" title="Editar">${icone('editar')} Editar</button>
+        <button type="button" class="mini" data-acao="testar" data-id="${l.id}" title="Mandar um teste agora">${icone('enviar')} Testar</button>
+        <button type="button" class="mini" data-acao="pausar" data-id="${l.id}">${icone(l.ativo ? 'pausar' : 'ativar')} ${l.ativo ? 'Pausar' : 'Ativar'}</button>
+        <button type="button" class="mini perigo" data-acao="excluir" data-id="${l.id}" title="Excluir">${icone('lixo')}</button>
+      </div>
+    </article>`;
+  }).join('') + '</div>';
+}
+
+$('lista').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-acao]');
+  if (!b) return;
+  const l = lembretes.find((x) => x.id === b.dataset.id);
+  if (!l) return;
+  try {
+    if (b.dataset.acao === 'editar') return abrirEditor(l);
+    if (b.dataset.acao === 'pagar') {
+      b.disabled = true;
+      await api(`/api/lembretes/${l.id}/pago`, { method: 'POST' });
+      toast(`Pagamento anotado: ${l.titulo}`, false, 'check');
+      return carregarLembretes();
+    }
+    if (b.dataset.acao === 'despagar') {
+      await api(`/api/lembretes/${l.id}/pago`, { method: 'DELETE', body: { vencimento: b.dataset.venc } });
+      toast('Pagamento desfeito — os avisos voltam a sair', false, 'desfazer');
+      return carregarLembretes();
+    }
+    if (b.dataset.acao === 'testar') {
+      b.disabled = true;
+      await api(`/api/lembretes/${l.id}/testar`, { method: 'POST' });
+      toast('Mandei um teste no seu WhatsApp', false, 'enviar');
+      b.disabled = false;
+    }
+    if (b.dataset.acao === 'pausar') {
+      await api(`/api/lembretes/${l.id}/ativo`, { method: 'POST', body: { ativo: !l.ativo } });
+      toast(l.ativo ? 'Lembrete pausado' : 'Lembrete ativado');
+      carregarLembretes();
+    }
+    if (b.dataset.acao === 'excluir') {
+      if (!confirm(`Excluir "${l.titulo}"?`)) return;
+      await api(`/api/lembretes/${l.id}`, { method: 'DELETE' });
+      toast('Lembrete excluído');
+      carregarLembretes();
+    }
+  } catch (err) { b.disabled = false; toast(err.message, true); }
+});
+
+async function carregarHistorico() {
+  let envios = [];
+  try { envios = await api('/api/envios'); } catch { return; }
+  $('historico').innerHTML = envios.length
+    ? envios.map((e) => `<li>
+        <span class="quando">${fmtQuando(e.enviado_em || e.enviar_em)}</span>
+        <span class="txt ${'st-' + e.status}">${e.status === 'enviado' ? negrito(e.texto)
+          : e.status === 'cancelado' ? `<span style="color:var(--verde)">${icone('check')} Aviso cancelado: a conta já estava paga</span>`
+          : `${icone('alerta')} Não enviado: ${esc(e.erro || e.status)}`}</span>
+      </li>`).join('')
+    : '<li style="color:var(--cinza);justify-content:center">Os avisos que saírem vão aparecer aqui.</li>';
+}
+
+// =============== editor ===============
+let editando = null;
+const ed = { tipo: 'luz', freq: 'mensal', avisos: new Set([3, 0]), msg: 'padrao' };
+
+$('chipsTipo').innerHTML = Object.entries(TIPOS).map(([k, t]) => `<button type="button" class="chip" data-tipo="${k}">${icone(t.icone)} ${t.curto}</button>`).join('');
+$('chipsAvisos').innerHTML = AVISOS.map(([d, n]) => `<button type="button" class="chip" data-d="${d}">${n}</button>`).join('');
+$('edDia').innerHTML = Array.from({ length: 31 }, (_, i) => `<option value="${i + 1}">Todo dia ${i + 1}</option>`).join('');
+
+function marcarChips() {
+  $('chipsTipo').querySelectorAll('.chip').forEach((c) => c.classList.toggle('on', c.dataset.tipo === ed.tipo));
+  $('chipsAvisos').querySelectorAll('.chip').forEach((c) => c.classList.toggle('on', ed.avisos.has(Number(c.dataset.d))));
+  $('segFreq').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.v === ed.freq));
+  $('segMsg').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.v === ed.msg));
+  $('blocoDia').hidden = ed.freq !== 'mensal';
+  $('blocoData').hidden = ed.freq !== 'unica';
+  $('blocoMsg').hidden = ed.msg !== 'minha';
+}
+
+$('chipsTipo').onclick = (e) => {
+  const c = e.target.closest('[data-tipo]'); if (!c) return;
+  const nomeAtual = $('edNome').value.trim();
+  const eraPadrao = !nomeAtual || Object.values(TIPOS).some((t) => t.titulo === nomeAtual);
+  ed.tipo = c.dataset.tipo;
+  if (eraPadrao) $('edNome').value = TIPOS[ed.tipo].titulo;
+  marcarChips(); atualizarPrevia();
+};
+$('chipsAvisos').onclick = (e) => {
+  const c = e.target.closest('[data-d]'); if (!c) return;
+  const d = Number(c.dataset.d);
+  if (ed.avisos.has(d) && ed.avisos.size === 1) return toast('Deixe pelo menos um aviso marcado');
+  ed.avisos.has(d) ? ed.avisos.delete(d) : ed.avisos.add(d);
+  marcarChips(); atualizarPrevia();
+};
+$('segFreq').onclick = (e) => { if (e.target.dataset.v) { ed.freq = e.target.dataset.v; marcarChips(); atualizarPrevia(); } };
+$('segMsg').onclick = (e) => {
+  if (!e.target.dataset.v) return;
+  ed.msg = e.target.dataset.v; marcarChips(); atualizarPrevia();
+  if (ed.msg === 'minha') $('edMensagem').focus();
+};
+document.querySelectorAll('.ajuda-vars code').forEach((c) => (c.onclick = () => {
+  const t = $('edMensagem'); const ini = t.selectionStart ?? t.value.length;
+  t.value = t.value.slice(0, ini) + c.dataset.var + t.value.slice(t.selectionEnd ?? ini);
+  t.focus(); t.selectionStart = t.selectionEnd = ini + c.dataset.var.length; atualizarPrevia();
+}));
+['edNome', 'edValor', 'edDia', 'edData', 'edHorario', 'edMensagem'].forEach((id) => $(id).addEventListener('input', () => atualizarPrevia()));
+
+function dadosDoEditor() {
+  return {
+    tipo: ed.tipo,
+    titulo: $('edNome').value.trim(),
+    valor: $('edValor').value.trim(),
+    frequencia: ed.freq,
+    dia: Number($('edDia').value),
+    data: $('edData').value,
+    avisos: [...ed.avisos],
+    horario: $('edHorario').value || '09:00',
+    mensagem: ed.msg === 'minha' ? $('edMensagem').value : '',
+  };
+}
+
+// ----- sugestões com IA -----
+let tomIa = 'amigavel';
+const marcadoresVisuais = (t) => esc(t).replace(/\*([^*\n]+)\*/g, '<b>$1</b>')
+  .replace(/\{(nome|conta|valor|vencimento|quando)\}/g, '<span style="color:#7c3aed">{$1}</span>');
+
+async function pedirSugestoes() {
+  $('painelIa').hidden = false;
+  $('btnIa').disabled = true;
+  $('avisoIa').textContent = '';
+  $('sugestoes').innerHTML = '<div class="esqueleto"></div><div class="esqueleto" style="animation-delay:.1s"></div><div class="esqueleto" style="animation-delay:.2s"></div>';
+  try {
+    const r = await api('/api/lembretes/sugerir', { method: 'POST', body: { tipo: ed.tipo, tom: tomIa, valor: $('edValor').value } });
+    $('sugestoes').innerHTML = r.sugestoes.map((t, i) => `<button type="button" class="sugestao" data-i="${i}" style="animation-delay:${i * 70}ms">
+      ${marcadoresVisuais(t)}<span class="usar">Usar esta →</span></button>`).join('');
+    $('sugestoes').querySelectorAll('.sugestao').forEach((b) => (b.onclick = () => usarSugestao(r.sugestoes[b.dataset.i], b)));
+    $('avisoIa').textContent = r.aviso || (r.origem === 'ia' ? 'Sugestões criadas pela IA. Os marcadores em roxo viram seus dados no envio.' : '');
+  } catch (e) {
+    $('sugestoes').innerHTML = '';
+    $('avisoIa').textContent = e.message;
+  }
+  $('btnIa').disabled = false;
+  $('btnIa').innerHTML = `${icone('ia')} Outras sugestões`;
+}
+
+function usarSugestao(texto, botao) {
+  ed.msg = 'minha';
+  $('edMensagem').value = texto;
+  marcarChips();
+  $('sugestoes').querySelectorAll('.sugestao').forEach((b) => b.classList.toggle('escolhida', b === botao));
+  atualizarPrevia();
+  $('bolha').animate([{ transform: 'scale(.98)' }, { transform: 'scale(1)' }], { duration: 220, easing: 'ease-out' });
+}
+
+$('btnIa').onclick = pedirSugestoes;
+$('tons').onclick = (e) => {
+  const c = e.target.closest('[data-tom]'); if (!c) return;
+  tomIa = c.dataset.tom;
+  $('tons').querySelectorAll('[data-tom]').forEach((b) => b.classList.toggle('on', b === c));
+  pedirSugestoes();
+};
+
+let previaTimer;
+function atualizarPrevia() {
+  $('bolha').classList.add('carregando');
+  clearTimeout(previaTimer);
+  previaTimer = setTimeout(async () => {
+    const hora = ($('edHorario').value || '09:00').slice(0, 5);
+    try {
+      const { texto } = await api('/api/lembretes/previa', { method: 'POST', body: dadosDoEditor() });
+      // negrito do WhatsApp (*texto*) aparece em negrito na prévia
+      $('bolha').innerHTML = negrito(texto) + `<span class="hora">${hora}</span>`;
+    } catch (e) {
+      $('bolha').innerHTML = `<span style="color:var(--cinza)">${esc(e.message)}</span><span class="hora">${hora}</span>`;
+    }
+    $('bolha').classList.remove('carregando');
+  }, 250);
+}
+
+function abrirEditor(l = null, tipo = 'luz') {
+  editando = l;
+  $('edTitulo').textContent = l ? 'Editar lembrete' : 'Novo lembrete';
+  ed.tipo = l?.tipo || tipo;
+  ed.freq = l?.frequencia || 'mensal';
+  ed.avisos = new Set(l?.avisos || [3, 0]);
+  ed.msg = l?.mensagem ? 'minha' : 'padrao';
+  $('edNome').value = l?.titulo ?? TIPOS[ed.tipo].titulo;
+  $('edValor').value = l?.valor != null ? String(l.valor).replace('.', ',') : '';
+  $('edDia').value = String(l?.dia || 10);
+  $('edData').value = l?.data || '';
+  $('edData').min = new Date(Date.now() - 3 * 3600_000).toISOString().slice(0, 10);
+  $('edHorario').value = (l?.horario || '09:00').slice(0, 5);
+  $('edMensagem').value = l?.mensagem || '';
+  $('painelIa').hidden = true; $('sugestoes').innerHTML = ''; $('btnIa').innerHTML = `${icone('ia')} Sugerir com IA`;
+  msg('edMsg', '', '');
+  marcarChips();
+  $('editor').showModal();
+  atualizarPrevia();
+}
+$('btnNovo').onclick = () => abrirEditor();
+$('edFechar').onclick = () => $('editor').close();
+
+$('formLembrete').onsubmit = async (e) => {
+  e.preventDefault();
+  const dados = dadosDoEditor();
+  if (!dados.titulo) return msg('edMsg', 'Dê um nome pro lembrete');
+  if (dados.frequencia === 'unica' && !dados.data) return msg('edMsg', 'Escolha a data do vencimento');
+  if (ed.msg === 'minha' && !dados.mensagem.trim()) return msg('edMsg', 'Escreva a mensagem ou use a padrão');
+  $('edSalvar').disabled = true;
+  try {
+    await api(editando ? `/api/lembretes/${editando.id}` : '/api/lembretes', { method: editando ? 'PUT' : 'POST', body: dados });
+    $('editor').close();
+    toast(editando ? 'Lembrete atualizado' : 'Lembrete criado', false, 'ok');
+    carregarLembretes();
+  } catch (err) { msg('edMsg', err.message); }
+  $('edSalvar').disabled = false;
+};
+
+// =============== admin ===============
+let adminTimer;
+async function desenharAdmin() {
+  let d;
+  try { d = await api('/api/admin/whatsapp'); } catch (e) { $('corpoAdmin').textContent = e.message; return; }
+  const corpo = $('corpoAdmin');
+  const chave = d.status + (d.qr || '') + (d.aviso || '');
+  if (corpo.dataset.chave === chave) return;
+  corpo.dataset.chave = chave;
+  if (d.status === 'conectado') {
+    corpo.innerHTML = `${icone('ok', 'ic-g')}<b>Conectado${d.numero ? ': +' + esc(d.numero.slice(0, 2)) + ' ' + esc(fmtTel(d.numero)) : ''}</b>
+      <span class="sub">Os lembretes de todo mundo saem por este número.</span>
+      <button type="button" class="mini perigo" id="btnDesc">Desconectar</button>`;
+    $('btnDesc').onclick = async () => {
+      if (!confirm('Desconectar o número do sistema? Ninguém recebe lembretes até conectar de novo.')) return;
+      corpo.innerHTML = '<div class="girando"></div>'; corpo.dataset.chave = '';
+      await api('/api/admin/whatsapp/desconectar', { method: 'POST' }); desenharAdmin(); carregarSistema();
+    };
+  } else if (d.qr) {
+    corpo.innerHTML = `<img class="qr" src="${d.qr}" alt="QR code"><ol><li>No celular do chip do sistema, abra o WhatsApp</li><li><b>Configurações → Dispositivos conectados → Conectar dispositivo</b></li><li>Aponte pra este código</li></ol>`;
+  } else if (d.status === 'iniciando' || d.status === 'aguardando_qr') {
+    corpo.innerHTML = '<div class="girando"></div><span class="sub">Gerando o QR code...</span>';
+  } else {
+    corpo.innerHTML = `${icone('celular-off', 'ic-g')}<b>Nenhum número conectado</b>
+      ${d.aviso ? `<span class="msg erro" style="margin:0">${esc(d.aviso)}</span>` : '<span class="sub">Conecte o chip que vai mandar os lembretes.</span>'}
+      <button type="button" class="primario" id="btnQr">Gerar QR code</button>`;
+    $('btnQr').onclick = async () => {
+      corpo.innerHTML = '<div class="girando"></div><span class="sub">Gerando o QR code...</span>'; corpo.dataset.chave = 'iniciando';
+      try { await api('/api/admin/whatsapp/conectar', { method: 'POST' }); } catch (e) { toast(e.message, true); }
+      desenharAdmin();
+    };
+  }
+}
+async function desenharResumo() {
+  try {
+    const r = await api('/api/admin/resumo');
+    $('numerosAdmin').innerHTML = [['contas', 'contas'], ['lembretes_ativos', 'lembretes ativos'], ['pendentes', 'avisos na fila'], ['enviados_hoje', 'enviados hoje']]
+      .map(([k, n]) => `<div><b>${r[k]}</b><span>${n}</span></div>`).join('');
+  } catch { /* ignora */ }
+}
+$('btnAdmin').onclick = () => {
+  $('corpoAdmin').dataset.chave = '';
+  $('admin').showModal(); desenharAdmin(); desenharResumo();
+  clearInterval(adminTimer); adminTimer = setInterval(() => { desenharAdmin(); carregarSistema(); }, 3000);
+};
+$('admin').addEventListener('close', () => clearInterval(adminTimer));
+
+// =============== conta ===============
+$('btnConta').onclick = (e) => { e.stopPropagation(); $('menuConta').hidden = !$('menuConta').hidden; };
+document.addEventListener('click', (e) => { if (!$('menuConta').contains(e.target)) $('menuConta').hidden = true; });
+$('btnSair').onclick = async () => { await fetch('/api/logout', { method: 'POST' }); location.replace('/login'); };
+
+// =============== início ===============
+(async function iniciar() {
+  try { usuario = await api('/api/me'); } catch { return; }
+  $('btnConta').textContent = (usuario.nome || '?').trim().charAt(0).toUpperCase();
+  $('contaNome').textContent = usuario.nome;
+  $('contaEmail').textContent = usuario.email;
+  $('btnAdmin').hidden = !usuario.admin;
+  await carregarSistema();
+  desenharTela();
+  setInterval(carregarSistema, 20000);
+  setInterval(() => { if (!$('secLembretes').hidden) carregarHistorico(); }, 60000);
+})();
+</script>
+</body>
+</html>

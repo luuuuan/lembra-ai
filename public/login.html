@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Entrar — Lembra Aí</title>
+<style>
+  :root { --verde:#1f8f5f; --verde-escuro:#17734c; --verde-claro:#e7f5ee; --cinza:#6b7280; --borda:#e5e7eb; --vermelho:#c0392b; }
+  * { box-sizing:border-box; }
+  [hidden] { display:none !important; }
+  body {
+    margin:0; min-height:100vh; font-family:system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color:#111827;
+    display:grid; place-items:center; padding:20px;
+    background:
+      radial-gradient(900px 500px at 10% -10%, #d6efe3 0%, transparent 60%),
+      radial-gradient(700px 500px at 110% 110%, #dfeaf7 0%, transparent 60%),
+      #f6f7f9;
+  }
+  .cartao {
+    width:min(410px, 100%); background:#fff; border:1px solid var(--borda); border-radius:18px;
+    padding:28px 26px 24px; box-shadow:0 20px 60px rgba(17,24,39,.08);
+    animation: entra .55s cubic-bezier(.34,1.4,.64,1) both;
+  }
+  @keyframes entra { from { opacity:0; transform:translateY(16px) scale(.97); } to { opacity:1; transform:none; } }
+  .marca { display:flex; align-items:center; gap:10px; margin-bottom:6px; }
+  .marca .icone { width:40px; height:40px; border-radius:12px; background:var(--verde-claro); color:var(--verde); display:grid; place-items:center; }
+  .marca h1 { font-size:18px; margin:0; }
+  .sub { color:var(--cinza); font-size:14px; margin:0 0 20px; }
+
+  .abas { position:relative; display:grid; grid-template-columns:1fr 1fr; background:#f3f4f6; border-radius:10px; padding:4px; margin-bottom:20px; }
+  .abas button { position:relative; z-index:1; border:0; background:none; padding:9px; font:inherit; font-size:14px; font-weight:500; color:var(--cinza); cursor:pointer; border-radius:8px; transition:color .25s; }
+  .abas button.ativa { color:#111827; }
+  .abas .marcador {
+    position:absolute; top:4px; bottom:4px; left:4px; width:calc(50% - 4px); background:#fff; border-radius:8px;
+    box-shadow:0 1px 3px rgba(0,0,0,.1); transition:transform .35s cubic-bezier(.4,0,.2,1);
+  }
+  .abas[data-aba="cadastro"] .marcador { transform:translateX(100%); }
+
+  .paineis { position:relative; overflow:hidden; transition:height .35s cubic-bezier(.4,0,.2,1); }
+  form { transition:opacity .25s ease, transform .35s cubic-bezier(.4,0,.2,1); }
+  form.escondido { position:absolute; inset:0 0 auto 0; opacity:0; pointer-events:none; }
+  form#formLogin.escondido { transform:translateX(-30px); }
+  form#formCadastro.escondido { transform:translateX(30px); }
+
+  label { display:block; font-size:13px; color:var(--cinza); margin:14px 0 5px; }
+  label:first-child { margin-top:0; }
+  .campo { position:relative; }
+  input {
+    width:100%; padding:11px 12px; border:1px solid var(--borda); border-radius:10px; font:inherit; font-size:15px;
+    transition:border-color .2s, box-shadow .2s;
+  }
+  input:focus { outline:none; border-color:var(--verde); box-shadow:0 0 0 3px rgba(31,143,95,.15); }
+  .olho { position:absolute; right:8px; top:50%; transform:translateY(-50%); border:0; background:none; cursor:pointer; color:var(--cinza); font-size:13px; padding:6px; }
+  .dica { font-size:12px; color:var(--cinza); margin-top:5px; }
+  .forca { height:4px; border-radius:99px; background:#f3f4f6; margin-top:7px; overflow:hidden; }
+  .forca span { display:block; height:100%; width:0; border-radius:inherit; transition:width .3s ease, background .3s ease; }
+
+  .botao {
+    width:100%; margin-top:20px; padding:12px; border:0; border-radius:10px; background:var(--verde); color:#fff;
+    font:inherit; font-size:15px; font-weight:500; cursor:pointer; transition:background .2s, transform .1s;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+  }
+  .botao:hover { background:var(--verde-escuro); }
+  .botao:active { transform:scale(.99); }
+  .botao:disabled { opacity:.7; cursor:wait; }
+  .giro { width:16px; height:16px; border:2px solid rgba(255,255,255,.4); border-top-color:#fff; border-radius:50%; animation:gira .7s linear infinite; display:none; }
+  .carregando .giro { display:block; }
+  @keyframes gira { to { transform:rotate(360deg); } }
+
+  .msg { font-size:13px; min-height:18px; margin-top:12px; text-align:center; }
+  .msg.erro { color:var(--vermelho); animation:treme .35s; }
+  .msg.ok { color:var(--verde); }
+  @keyframes treme { 25% { transform:translateX(-5px); } 75% { transform:translateX(5px); } }
+  .rodape { text-align:center; font-size:13px; color:var(--cinza); margin-top:14px; }
+  .rodape button { border:0; background:none; color:var(--verde); font:inherit; cursor:pointer; padding:0; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cartao, .msg.erro { animation:none; }
+    .abas .marcador, .paineis, form { transition:none; }
+  }
+</style>
+</head>
+<body>
+<main class="cartao">
+  <div class="marca">
+    <div class="icone"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></div>
+    <h1>Lembra Aí</h1>
+  </div>
+  <p class="sub">Receba no WhatsApp o lembrete das suas contas antes de vencer. Luz, água, aluguel, cartão...</p>
+
+  <div class="abas" id="abas" data-aba="login" role="tablist">
+    <div class="marcador"></div>
+    <button type="button" class="ativa" data-aba="login" role="tab">Entrar</button>
+    <button type="button" data-aba="cadastro" role="tab">Criar conta</button>
+  </div>
+
+  <div class="paineis" id="paineis">
+    <form id="formLogin" novalidate>
+      <label for="loginEmail">E-mail</label>
+      <input id="loginEmail" type="email" autocomplete="email" required>
+      <label for="loginSenha">Senha</label>
+      <div class="campo">
+        <input id="loginSenha" type="password" autocomplete="current-password" required>
+        <button type="button" class="olho" data-alvo="loginSenha">mostrar</button>
+      </div>
+      <button class="botao" type="submit"><span class="giro"></span><span>Entrar</span></button>
+      <div class="msg" id="msgLogin"></div>
+      <div class="rodape">Ainda não tem conta? <button type="button" data-ir="cadastro">Criar conta</button></div>
+    </form>
+
+    <form id="formCadastro" class="escondido" novalidate>
+      <label for="cadNome">Nome</label>
+      <input id="cadNome" autocomplete="name" required>
+      <label for="cadEmail">E-mail</label>
+      <input id="cadEmail" type="email" autocomplete="email" required>
+      <label for="cadSenha">Senha</label>
+      <div class="campo">
+        <input id="cadSenha" type="password" autocomplete="new-password" minlength="8" required>
+        <button type="button" class="olho" data-alvo="cadSenha">mostrar</button>
+      </div>
+      <div class="forca"><span id="barraForca"></span></div>
+      <div class="dica" id="dicaSenha">Mínimo de 8 caracteres.</div>
+      <button class="botao" type="submit"><span class="giro"></span><span>Criar conta</span></button>
+      <div class="msg" id="msgCadastro"></div>
+      <div class="rodape">Já tem conta? <button type="button" data-ir="login">Entrar</button></div>
+    </form>
+  </div>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const formularios = { login: $('formLogin'), cadastro: $('formCadastro') };
+
+function ajustarAltura() {
+  const visivel = document.querySelector('#paineis form:not(.escondido)');
+  $('paineis').style.height = visivel.offsetHeight + 'px';
+}
+
+function trocarAba(aba) {
+  $('abas').dataset.aba = aba;
+  $('abas').querySelectorAll('button').forEach((b) => b.classList.toggle('ativa', b.dataset.aba === aba));
+  for (const [nome, form] of Object.entries(formularios)) form.classList.toggle('escondido', nome !== aba);
+  ajustarAltura();
+  history.replaceState(null, '', aba === 'cadastro' ? '#cadastro' : '#');
+  setTimeout(() => formularios[aba].querySelector('input').focus({ preventScroll: true }), 200);
+}
+
+$('abas').onclick = (e) => { if (e.target.dataset.aba) trocarAba(e.target.dataset.aba); };
+document.querySelectorAll('[data-ir]').forEach((b) => (b.onclick = () => trocarAba(b.dataset.ir)));
+document.querySelectorAll('.olho').forEach((b) => (b.onclick = () => {
+  const campo = $(b.dataset.alvo);
+  campo.type = campo.type === 'password' ? 'text' : 'password';
+  b.textContent = campo.type === 'password' ? 'mostrar' : 'esconder';
+}));
+
+// Barrinha de força da senha
+$('cadSenha').oninput = () => {
+  const s = $('cadSenha').value;
+  let pontos = 0;
+  if (s.length >= 8) pontos++;
+  if (s.length >= 12) pontos++;
+  if (/[A-Z]/.test(s) && /[a-z]/.test(s)) pontos++;
+  if (/\d/.test(s)) pontos++;
+  if (/[^A-Za-z0-9]/.test(s)) pontos++;
+  const niveis = [['0%', '#e5e7eb', 'Mínimo de 8 caracteres.'], ['25%', '#c0392b', 'Fraca'], ['50%', '#e67e22', 'Razoável'],
+                  ['75%', '#f1c40f', 'Boa'], ['100%', '#1f8f5f', 'Forte'], ['100%', '#1f8f5f', 'Forte']];
+  const [largura, cor, texto] = s ? niveis[Math.max(1, pontos)] : niveis[0];
+  Object.assign($('barraForca').style, { width: largura, background: cor });
+  $('dicaSenha').textContent = s && s.length < 8 ? `Faltam ${8 - s.length} caracteres.` : texto;
+};
+
+function mensagem(id, texto, tipo = 'erro') {
+  const el = $(id);
+  el.className = 'msg';
+  void el.offsetWidth; // reinicia a animação de "tremida"
+  el.textContent = texto;
+  el.className = 'msg ' + tipo;
+  ajustarAltura();
+}
+
+async function enviarFormulario(form, url, dados, msgId) {
+  const botao = form.querySelector('.botao');
+  botao.disabled = true; botao.classList.add('carregando');
+  try {
+    const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dados) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.erro || 'Algo deu errado, tente de novo');
+    mensagem(msgId, 'Tudo certo! Entrando...', 'ok');
+    setTimeout(() => location.replace('/'), 350);
+  } catch (e) {
+    mensagem(msgId, e.message);
+    botao.disabled = false; botao.classList.remove('carregando');
+  }
+}
+
+$('formLogin').onsubmit = (e) => {
+  e.preventDefault();
+  const email = $('loginEmail').value.trim();
+  const senha = $('loginSenha').value;
+  if (!email || !senha) return mensagem('msgLogin', 'Preencha e-mail e senha');
+  enviarFormulario(e.target, '/api/login', { email, senha }, 'msgLogin');
+};
+
+$('formCadastro').onsubmit = (e) => {
+  e.preventDefault();
+  const dados = {
+    nome: $('cadNome').value.trim(),
+    email: $('cadEmail').value.trim(),
+    senha: $('cadSenha').value,
+  };
+  if (dados.nome.length < 2) return mensagem('msgCadastro', 'Digite seu nome');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(dados.email)) return mensagem('msgCadastro', 'E-mail inválido');
+  if (dados.senha.length < 8) return mensagem('msgCadastro', 'A senha precisa ter pelo menos 8 caracteres');
+  enviarFormulario(e.target, '/api/cadastro', dados, 'msgCadastro');
+};
+
+addEventListener('resize', ajustarAltura);
+trocarAba(location.hash === '#cadastro' ? 'cadastro' : 'login');
+</script>
+</body>
+</html>
