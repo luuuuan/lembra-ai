@@ -261,6 +261,41 @@
     .numeros { grid-template-columns:repeat(2, 1fr); }
   }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation:none !important; transition:none !important; } }
+
+  /* ---------- tour de boas-vindas ---------- */
+  #tour { position:fixed; inset:0; z-index:1000; opacity:0; transition:opacity .3s ease; }
+  #tour.on { opacity:1; }
+  .tour-bloqueio { position:fixed; inset:0; }
+  .tour-foco { position:fixed; left:50%; top:50%; width:0; height:0; border-radius:16px; pointer-events:none;
+    box-shadow:0 0 0 9999px rgba(15,23,42,.58);
+    transition:top .5s cubic-bezier(.65,0,.35,1), left .5s cubic-bezier(.65,0,.35,1), width .5s cubic-bezier(.65,0,.35,1), height .5s cubic-bezier(.65,0,.35,1), border-radius .5s; }
+  .tour-foco::after { content:''; position:absolute; inset:-4px; border-radius:inherit; border:2px solid rgba(255,255,255,.9); animation:tourPulso 1.8s ease-out infinite; }
+  .tour-foco.centro::after { display:none; }
+  @keyframes tourPulso { 0% { opacity:.9; transform:scale(1); } 70%,100% { opacity:0; transform:scale(1.06); } }
+  .tour-balao { position:fixed; left:50%; top:50%; width:min(350px, calc(100vw - 24px)); background:#fff; border-radius:18px; padding:20px 20px 16px;
+    box-shadow:0 24px 60px rgba(15,23,42,.3); transform:scale(.92); opacity:0;
+    transition:top .5s cubic-bezier(.65,0,.35,1), left .5s cubic-bezier(.65,0,.35,1), transform .35s cubic-bezier(.34,1.56,.64,1), opacity .25s; }
+  #tour.on .tour-balao { transform:scale(1); opacity:1; }
+  .tour-seta { position:absolute; width:16px; height:16px; background:#fff; transform:rotate(45deg); border-radius:3px; transition:left .5s cubic-bezier(.65,0,.35,1), opacity .2s; }
+  .tour-seta.cima { top:-7px; } .tour-seta.baixo { bottom:-7px; } .tour-seta.nenhuma { opacity:0; }
+  .tour-conteudo { transition:opacity .2s ease, transform .2s ease; }
+  .tour-conteudo.trocando { opacity:0; transform:translateY(8px); }
+  .tour-ic { width:44px; height:44px; border-radius:13px; background:var(--verde-claro); color:var(--verde); display:grid; place-items:center; margin-bottom:12px; }
+  .tour-ic .ic { width:24px; height:24px; margin:0; }
+  .tour-balao h3 { margin:0 0 6px; font-size:17px; }
+  .tour-balao p { margin:0; font-size:14px; line-height:1.5; color:#4b5563; }
+  .tour-rodape { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:18px; }
+  .tour-pontos { display:flex; gap:5px; }
+  .tour-pontos i { width:7px; height:7px; border-radius:99px; background:#d1d5db; transition:width .35s ease, background .35s ease; }
+  .tour-pontos i.on { width:20px; background:var(--verde); }
+  .tour-botoes { display:flex; align-items:center; gap:8px; }
+  .tour-botoes .primario, .tour-botoes .secundario { padding:8px 14px; font-size:14px; }
+  .tour-botoes .link { color:var(--cinza); margin-right:4px; }
+  .tour-sem-transicao, .tour-sem-transicao .tour-seta { transition:none !important; }
+  @media (prefers-reduced-motion: reduce) {
+    #tour, .tour-foco, .tour-balao, .tour-seta, .tour-conteudo, .tour-pontos i { transition:opacity .2s !important; }
+    .tour-foco::after { animation:none; }
+  }
 </style>
 </head>
 <body>
@@ -324,6 +359,7 @@
         <span id="contaEmail"></span>
         <div class="linha-tel" id="contaTel"></div>
         <div class="plano-menu" id="planoMenu"></div>
+        <button type="button" id="btnTour">Ver o passo a passo</button>
         <button type="button" id="btnTrocarTel">Trocar meu número</button>
         <button type="button" class="sair" id="btnSair"><svg class="ic"><use href="#i-sair"/></svg> Sair</button>
       </div>
@@ -398,6 +434,27 @@
 </main>
 
 <!-- Novo / editar lembrete -->
+
+<div id="tour" hidden>
+  <div class="tour-bloqueio"></div>
+  <div class="tour-foco centro" id="tourFoco"></div>
+  <div class="tour-balao" id="tourBalao" role="dialog" aria-modal="true" aria-labelledby="tourTitulo" aria-describedby="tourTexto">
+    <div class="tour-seta nenhuma" id="tourSeta"></div>
+    <div class="tour-conteudo" id="tourConteudo">
+      <div class="tour-ic" id="tourIc"></div>
+      <h3 id="tourTitulo"></h3>
+      <p id="tourTexto"></p>
+    </div>
+    <div class="tour-rodape">
+      <div class="tour-pontos" id="tourPontos"></div>
+      <div class="tour-botoes">
+        <button type="button" class="link" id="tourPular">Pular</button>
+        <button type="button" class="secundario" id="tourVoltar">Voltar</button>
+        <button type="button" class="primario" id="tourProx">Próximo</button>
+      </div>
+    </div>
+  </div>
+</div>
 <dialog id="editor">
   <form id="formLembrete" novalidate>
     <h2 id="edTitulo">Novo lembrete</h2>
@@ -710,7 +767,7 @@ function desenharTela() {
   $('confTitulo').textContent = trocandoNumero ? 'Trocar meu número' : 'Primeiro, confirme seu WhatsApp';
   $('cancelarTroca').hidden = !(trocandoNumero && confirmado);
   $('contaTel').innerHTML = confirmado ? `${icone('celular')} ${esc(fmtTel(usuario.telefone))} <span style="color:var(--verde)">${icone('check')} confirmado</span>` : `${icone('celular')} número não confirmado`;
-  if (confirmado && !trocandoNumero) return Promise.all([carregarLembretes(), carregarHistorico()]);
+  if (confirmado && !trocandoNumero) return Promise.all([carregarLembretes(), carregarHistorico()]).then(() => talvezTour());
   return Promise.resolve();
 }
 
@@ -1161,6 +1218,146 @@ $('admin').addEventListener('close', () => clearInterval(adminTimer));
 $('btnConta').onclick = (e) => { e.stopPropagation(); $('menuConta').hidden = !$('menuConta').hidden; };
 document.addEventListener('click', (e) => { if (!$('menuConta').contains(e.target)) $('menuConta').hidden = true; });
 $('btnSair').onclick = async () => { await fetch('/api/logout', { method: 'POST' }); location.replace('/login'); };
+
+
+// =============== tour de boas-vindas ===============
+const tour = { passo: 0, passos: [], ativo: false, alvo: null, ouvindo: false };
+const chaveTour = () => `lembraai:tour:${usuario && usuario.id}`;
+const tourVisto = () => { try { return localStorage.getItem(chaveTour()) === '1'; } catch { return false; } };
+const marcarTourVisto = () => { try { localStorage.setItem(chaveTour(), '1'); } catch { /* sem armazenamento: tudo bem */ } };
+const espera = (ms) => new Promise((ok) => setTimeout(ok, ms));
+
+function montarPassos() {
+  const primeiroNome = (usuario.nome || '').trim().split(/\s+/)[0] || '';
+  const card = document.querySelector('#lista .lembrete');
+  const pagar = document.querySelector('#lista [data-acao="pagar"]');
+  const vazio = !lembretes.length;
+  return [
+    { ic: 'sino', titulo: `Oi${primeiroNome ? ', ' + primeiroNome : ''}! Bem-vindo(a) ao Lembra Aí`,
+      texto: 'Em menos de um minuto te mostro como funciona. É bem simples, prometo.' },
+    { alvo: () => $('btnNovo'), ic: 'mais', titulo: 'Cadastre suas contas',
+      texto: 'Comece por aqui: escolha a conta, o valor e o dia do vencimento. A gente cuida do resto.' },
+    { alvo: () => card || $('lista'), ic: 'calendario', titulo: vazio ? 'Ou use um atalho' : 'Seus lembretes ficam aqui',
+      texto: vazio ? 'Toque numa das contas mais comuns pra já começar com tudo preenchido.'
+        : 'Cada conta vira um cartão. Dá pra editar, pausar ou mandar um teste pro seu WhatsApp.' },
+    { alvo: () => pagar, ic: 'conversa', titulo: 'Pagou? Responde "paguei"',
+      texto: 'Quando o aviso chegar no WhatsApp, é só responder <b>paguei</b> que os próximos avisos daquele mês param.' + (pagar ? ' Se preferir, marque aqui mesmo.' : '') },
+    { alvo: () => $('historico').closest('.card'), ic: 'enviar', titulo: 'Últimos avisos',
+      texto: 'Aqui aparece tudo o que o Lembra Aí já te mandou, com dia e horário.' },
+    { alvo: () => $('btnConta'), ic: usuario.premium ? 'coroa' : 'celular', titulo: 'Sua conta',
+      texto: usuario.premium ? 'Aqui ficam seu número, seu plano Premium e este passo a passo, se quiser ver de novo.'
+        : 'Aqui você troca o número, conhece o Premium e pode rever este passo a passo quando quiser.' },
+    { ic: 'check', titulo: 'Tudo pronto!', final: true,
+      texto: vazio ? 'Que tal cadastrar a primeira conta agora? Leva menos de um minuto.' : 'Agora é com você. Pode deixar que a gente lembra.' },
+  ];
+}
+
+function talvezTour() {
+  if (tour.ativo || tour.checado || $('secLembretes').hidden) return;
+  tour.checado = true;
+  if (!tourVisto()) setTimeout(() => abrirTour(), 900);
+}
+
+function abrirTour() {
+  if (tour.ativo || $('secLembretes').hidden) return;
+  $('menuConta').hidden = true;
+  tour.passos = montarPassos(); tour.passo = 0; tour.ativo = true;
+  $('tourPontos').innerHTML = tour.passos.map(() => '<i></i>').join('');
+  $('tour').hidden = false;
+  if (!tour.ouvindo) {
+    tour.ouvindo = true;
+    const reposiciona = () => { if (tour.ativo && !tour.mudando) posicionar(false); };
+    window.addEventListener('resize', reposiciona);
+    window.addEventListener('scroll', reposiciona, { passive: true });
+    document.addEventListener('keydown', (e) => {
+      if (!tour.ativo) return;
+      if (e.key === 'Escape') fecharTour();
+      else if (e.key === 'ArrowRight') irPara(tour.passo + 1);
+      else if (e.key === 'ArrowLeft') irPara(tour.passo - 1);
+    });
+  }
+  requestAnimationFrame(() => { $('tour').classList.add('on'); irPara(0, true); });
+}
+
+function fecharTour(terminou) {
+  if (!tour.ativo) return;
+  tour.ativo = false; marcarTourVisto();
+  $('tour').classList.remove('on');
+  setTimeout(() => { $('tour').hidden = true; }, 320);
+  if (terminou && !lembretes.length) setTimeout(() => abrirEditor(null), 350);
+}
+
+async function rolarAte(el) {
+  if (!el || el.closest('header')) return;
+  const r = el.getBoundingClientRect();
+  const topo = document.querySelector('header').offsetHeight;
+  const livre = innerHeight - topo;
+  const destino = scrollY + r.top - topo - Math.max(16, (livre - Math.min(r.height, livre * 0.55)) / 2 - 60);
+  if (Math.abs(destino - scrollY) < 8) return;
+  scrollTo({ top: Math.max(0, destino), behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  let ultimo = -1, iguais = 0;
+  for (let i = 0; i < 40 && iguais < 3; i++) { await espera(25); iguais = Math.abs(scrollY - ultimo) < 1 ? iguais + 1 : 0; ultimo = scrollY; }
+}
+
+function posicionar(animar = true) {
+  const foco = $('tourFoco'), balao = $('tourBalao'), seta = $('tourSeta');
+  if (!animar) { foco.classList.add('tour-sem-transicao'); balao.classList.add('tour-sem-transicao'); }
+  const el = tour.alvo;
+  const w = balao.offsetWidth, h = balao.offsetHeight, m = 12;
+  if (!el) {
+    foco.classList.add('centro');
+    Object.assign(foco.style, { left: innerWidth / 2 + 'px', top: innerHeight / 2 + 'px', width: '0px', height: '0px' });
+    Object.assign(balao.style, { left: (innerWidth - w) / 2 + 'px', top: Math.max(m, (innerHeight - h) / 2) + 'px' });
+    seta.className = 'tour-seta nenhuma';
+  } else {
+    const r = el.getBoundingClientRect(), pad = 8;
+    foco.classList.remove('centro');
+    const raio = Math.min(16, parseFloat(getComputedStyle(el).borderTopLeftRadius) + pad || 12);
+    Object.assign(foco.style, { left: r.left - pad + 'px', top: r.top - pad + 'px', width: r.width + pad * 2 + 'px', height: r.height + pad * 2 + 'px', borderRadius: (el.id === 'btnConta' ? 999 : raio) + 'px' });
+    const abaixo = r.bottom + pad + 14 + h < innerHeight - m;
+    const acima = r.top - pad - 14 - h > m;
+    let top = abaixo || !acima ? r.bottom + pad + 14 : r.top - pad - 14 - h;
+    top = Math.min(Math.max(m, top), innerHeight - h - m);
+    const left = Math.min(Math.max(m, r.left + r.width / 2 - w / 2), innerWidth - w - m);
+    Object.assign(balao.style, { left: left + 'px', top: top + 'px' });
+    const encostaFoco = abaixo || !acima ? top >= r.bottom : top + h <= r.top;
+    seta.className = 'tour-seta ' + (!encostaFoco ? 'nenhuma' : abaixo || !acima ? 'cima' : 'baixo');
+    seta.style.left = Math.min(Math.max(18, r.left + r.width / 2 - left - 8), w - 34) + 'px';
+  }
+  if (!animar) requestAnimationFrame(() => { foco.classList.remove('tour-sem-transicao'); balao.classList.remove('tour-sem-transicao'); });
+}
+
+async function irPara(n, primeiro) {
+  if (!tour.ativo || tour.mudando) return;
+  if (n < 0) return;
+  if (n >= tour.passos.length) return fecharTour(true);
+  tour.mudando = true;
+  const p = tour.passos[n];
+  const conteudo = $('tourConteudo');
+  if (!primeiro) { conteudo.classList.add('trocando'); await espera(180); }
+  tour.passo = n;
+  tour.alvo = (p.alvo && p.alvo()) || null;
+  if (tour.alvo && !tour.alvo.offsetParent && tour.alvo.id !== 'btnConta') tour.alvo = null; // escondido: mostra no meio
+  // troca o texto já (o balão desliza com o tamanho novo)
+  $('tourIc').innerHTML = icone(p.ic);
+  $('tourTitulo').textContent = p.titulo;
+  $('tourTexto').innerHTML = p.texto;
+  $('tourVoltar').hidden = n === 0;
+  $('tourPular').hidden = !!p.final;
+  $('tourProx').textContent = p.final ? (lembretes.length ? 'Começar' : 'Criar meu primeiro lembrete') : n === 0 ? 'Vamos lá' : 'Próximo';
+  [...$('tourPontos').children].forEach((d, i) => d.classList.toggle('on', i === n));
+  await rolarAte(tour.alvo);
+  posicionar(!primeiro);
+  await espera(primeiro ? 0 : 260);
+  conteudo.classList.remove('trocando');
+  tour.mudando = false;
+  $('tourProx').focus({ preventScroll: true });
+}
+
+$('tourProx').onclick = () => irPara(tour.passo + 1);
+$('tourVoltar').onclick = () => irPara(tour.passo - 1);
+$('tourPular').onclick = () => fecharTour();
+$('btnTour').onclick = () => { $('menuConta').hidden = true; abrirTour(); };
 
 // =============== início ===============
 (async function iniciar() {
