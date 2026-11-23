@@ -1288,13 +1288,32 @@ $('btnSair').onclick = async () => { await fetch('/api/logout', { method: 'POST'
 
 // =============== tour de boas-vindas ===============
 const tour = { passo: 0, passos: [], ativo: false, alvo: null, ouvindo: false };
-const chaveTour = () => `lembraai:tour:${usuario && usuario.id}`;
+const chaveTour = () => `lembraai:tour${tour.modo === 'confirmar' ? '-confirmar' : ''}:${usuario && usuario.id}`;
 const tourVisto = () => { try { return localStorage.getItem(chaveTour()) === '1'; } catch { return false; } };
 const marcarTourVisto = () => { try { localStorage.setItem(chaveTour(), '1'); } catch { /* sem armazenamento: tudo bem */ } };
 const espera = (ms) => new Promise((ok) => setTimeout(ok, ms));
 
+function passosConfirmar(primeiroNome) {
+  const etapa = !$('etapaCodigo').hidden ? $('etapaCodigo') : $('etapaNumero');
+  const codigo = etapa.id === 'etapaCodigo';
+  return [
+    { ic: 'sino', titulo: `Oi${primeiroNome ? ', ' + primeiroNome : ''}! Falta só um passo`,
+      texto: 'Antes de cadastrar suas contas, a gente precisa confirmar o WhatsApp que vai receber os lembretes.' },
+    { alvo: () => etapa, ic: 'celular', titulo: codigo ? 'Digite o código' : 'Confirme seu WhatsApp',
+      texto: codigo ? 'Mandamos um código de 4 números pro seu WhatsApp. É só digitar aqui.'
+        : 'Coloque seu número com DDD. A gente manda um código de 4 números pelo WhatsApp pra confirmar que é você.' },
+    { alvo: () => $('ladoConfirmar'), ic: 'conversa', titulo: 'Salve nosso número',
+      texto: 'Os lembretes chegam deste número. Salvando ele nos contatos, as mensagens nunca caem como desconhecidas.' },
+    { alvo: () => $('btnConta'), ic: 'celular', titulo: 'Sua conta',
+      texto: 'Aqui você vê seus dados, conhece o Premium e pode rever este passo a passo quando quiser.' },
+    { ic: 'check', titulo: 'Depois é com a gente!', final: true,
+      texto: 'Assim que confirmar o número, te mostro rapidinho como cadastrar as contas.' },
+  ];
+}
+
 function montarPassos() {
   const primeiroNome = (usuario.nome || '').trim().split(/\s+/)[0] || '';
+  if (tour.modo === 'confirmar') return passosConfirmar(primeiroNome);
   const card = document.querySelector('#lista .lembrete');
   const pagar = document.querySelector('#lista [data-acao="pagar"]');
   const vazio = !lembretes.length;
@@ -1321,11 +1340,15 @@ function montarPassos() {
 function talvezTour() {
   if (tour.ativo || tour.checado || $('secLembretes').hidden) return;
   tour.checado = true;
+  tour.modo = 'painel';
   if (!tourVisto()) setTimeout(() => abrirTour(), 900);
 }
 
 function abrirTour() {
-  if (tour.ativo || $('secLembretes').hidden) return;
+  if (tour.ativo) return;
+  const painel = !$('secLembretes').hidden, confirmar = !$('secConfirmar').hidden;
+  if (!painel && !confirmar) return toast('Espere a página terminar de carregar.', false, 'alerta');
+  tour.modo = painel ? 'painel' : 'confirmar';
   $('menuConta').hidden = true;
   tour.passos = montarPassos(); tour.passo = 0; tour.ativo = true;
   $('tourPontos').innerHTML = tour.passos.map(() => '<i></i>').join('');
@@ -1350,7 +1373,8 @@ function fecharTour(terminou) {
   tour.ativo = false; marcarTourVisto();
   $('tour').classList.remove('on');
   setTimeout(() => { $('tour').hidden = true; }, 320);
-  if (terminou && !lembretes.length) setTimeout(() => abrirEditor(null), 350);
+  if (terminou && tour.modo === 'painel' && !lembretes.length) setTimeout(() => abrirEditor(null), 350);
+  if (terminou && tour.modo === 'confirmar') setTimeout(() => { const i = $('inTelefone'); if (i && i.offsetParent) i.focus(); }, 350);
 }
 
 async function rolarAte(el) {
@@ -1410,7 +1434,7 @@ async function irPara(n, primeiro) {
   $('tourTexto').innerHTML = p.texto;
   $('tourVoltar').hidden = n === 0;
   $('tourPular').hidden = !!p.final;
-  $('tourProx').textContent = p.final ? (lembretes.length ? 'Começar' : 'Criar meu primeiro lembrete') : n === 0 ? 'Vamos lá' : 'Próximo';
+  $('tourProx').textContent = p.final ? (tour.modo === 'confirmar' ? 'Confirmar meu número' : lembretes.length ? 'Começar' : 'Criar meu primeiro lembrete') : n === 0 ? 'Vamos lá' : 'Próximo';
   [...$('tourPontos').children].forEach((d, i) => d.classList.toggle('on', i === n));
   await rolarAte(tour.alvo);
   posicionar(!primeiro);
