@@ -1,0 +1,15 @@
+{
+  "name": "Lembra Aí",
+  "short_name": "Lembra Aí",
+  "description": "Lembretes das suas contas direto no WhatsApp.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F3FAF6",
+  "theme_color": "#0FA055",
+  "lang": "pt-BR",
+  "icons": [
+    { "src": "/marca/icone-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/marca/icone-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/marca/icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

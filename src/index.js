@@ -28,6 +28,14 @@ app.use(express.json());
 // ---- Pública (UptimeRobot) ----
 app.get('/health', (_req, res) => res.json({ ok: true, whatsapp: whatsapp.getStatus().status }));
 
+app.use('/marca', express.static(path.join(raiz, 'public', 'marca'), { maxAge: '7d' })); // logo e ícones
+// favicon e ícones que navegadores e celulares procuram na raiz do site
+const marca = (arq) => (req, res) => res.sendFile(path.join(raiz, 'public', 'marca', arq), { maxAge: '7d' });
+app.get('/favicon.ico', marca('favicon.ico'));
+app.get('/apple-touch-icon.png', marca('apple-touch-icon.png'));
+app.get('/apple-touch-icon-precomposed.png', marca('apple-touch-icon.png'));
+app.get('/site.webmanifest', (req, res) => res.type('application/manifest+json').sendFile(path.join(raiz, 'public', 'marca', 'site.webmanifest')));
+
 app.use(carregarSessao);
 
 // ---- Páginas ----

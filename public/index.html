@@ -3,6 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" type="image/svg+xml" href="/marca/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/marca/favicon-32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<meta name="theme-color" content="#0FA055">
 <title>Lembra Aí</title>
 <style>
   :root { --verde:#1f8f5f; --verde-escuro:#17734c; --verde-claro:#e7f5ee; --cinza:#6b7280; --borda:#e5e7eb; --fundo:#f6f7f9; --vermelho:#c0392b; --texto:#111827; }
@@ -20,6 +26,8 @@
   /* ---------- topo ---------- */
   header { background:#fff; border-bottom:1px solid var(--borda); padding:12px 20px; display:flex; align-items:center; justify-content:space-between; gap:12px; position:sticky; top:0; z-index:20; }
   header h1 { font-size:18px; margin:0; display:flex; align-items:center; gap:8px; }
+  .logo-topo { height:34px; display:block; } .logo-simbolo { height:34px; display:none; }
+  @media (max-width: 560px) { .logo-topo { display:none; } .logo-simbolo { display:block; } }
   .marca-ic { width:32px; height:32px; border-radius:9px; background:var(--verde-claro); color:var(--verde); display:grid; place-items:center; }
   .topo-dir { display:flex; align-items:center; gap:10px; }
   .selo { font-size:12px; padding:4px 10px; border-radius:999px; background:#fef3c7; color:#92400e; white-space:nowrap; }
@@ -302,7 +310,7 @@
   <symbol id="i-cadeado" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
 </svg>
 <header>
-  <h1><span class="marca-ic"><svg class="ic"><use href="#i-sino"/></svg></span> <span class="nome-app">Lembra Aí</span></h1>
+  <h1><a href="/" aria-label="Lembra Aí"><img src="/marca/logo-horizontal.svg" alt="Lembra Aí" class="logo-topo"><img src="/marca/simbolo.svg" alt="Lembra Aí" class="logo-simbolo"></a></h1>
   <div class="topo-dir">
     <span class="selo esq" id="selo" style="width:90px;color:transparent">...</span>
     <button type="button" class="btn-admin" id="btnAdmin" hidden><svg class="ic"><use href="#i-celular"/></svg><span class="txt-admin">Número do sistema</span></button>
@@ -581,7 +589,8 @@ function textoAvisos(lista, horario) {
   return `${junto}, às ${String(horario).slice(0, 5)}`;
 }
 
-const negrito = (t) => esc(t).replace(/\*([^*\n]+)\*/g, '<b>$1</b>'); // *texto* do WhatsApp em negrito
+// *negrito* e _itálico_ do WhatsApp, como aparecem no celular
+const negrito = (t) => esc(t).replace(/\*([^*\n]+)\*/g, '<b>$1</b>').replace(/(^|[\s(])_([^_\n]+)_(?=$|[\s).,!?])/gm, '$1<i>$2</i>');
 
 // =============== planos ===============
 let planos = null;
