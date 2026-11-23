@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" type="image/svg+xml" href="/marca/favicon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<meta name="theme-color" content="#0FA055">
+<script>
+/* tema: escolha salva > configuração do aparelho (roda antes de desenhar a página, sem piscar) */
+(function () {
+  var salvo = null; try { salvo = localStorage.getItem('lembraai:tema'); } catch (e) {}
+  var escuro = salvo ? salvo === 'escuro' : matchMedia('(prefers-color-scheme: dark)').matches;
+  document.documentElement.dataset.tema = escuro ? 'escuro' : 'claro';
+})();
+</script>
+<title>Política de privacidade — Lembra Aí</title>
+<style>
+  :root { --verde:#1b8558; --verde-fundo:#1b8558; --verde-claro:#e7f5ee; --texto:#0f172a; --texto-2:#334155; --cinza:#64748b; --borda:#e5e7eb; --fundo:#f7f8fa; --card:#fff; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color:var(--texto); background:var(--fundo); line-height:1.7; }
+  a { color:var(--verde); }
+  header { position:sticky; top:0; z-index:5; background:var(--card); border-bottom:1px solid var(--borda); }
+  header .barra { max-width:920px; margin:0 auto; padding:12px 20px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  header nav { display:flex; align-items:center; gap:8px; font-size:14px; }
+  header nav a.aba { text-decoration:none; color:var(--cinza); padding:6px 12px; border-radius:999px; }
+  header nav a.aba.on { background:var(--verde-claro); color:var(--verde); font-weight:600; }
+  main { max-width:920px; margin:0 auto; padding:34px 20px 60px; display:grid; grid-template-columns:220px 1fr; gap:36px; align-items:start; }
+  .indice { position:sticky; top:84px; font-size:13.5px; }
+  .indice b { display:block; font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--cinza); margin-bottom:8px; }
+  .indice ol { margin:0; padding-left:18px; }
+  .indice li { margin:4px 0; }
+  .indice a { color:var(--texto-2); text-decoration:none; }
+  .indice a:hover { color:var(--verde); }
+  article { background:var(--card); border:1px solid var(--borda); border-radius:18px; padding:34px 38px; }
+  h1 { font-size:30px; line-height:1.2; margin:0 0 6px; letter-spacing:-.02em; }
+  .data { color:var(--cinza); font-size:14px; margin:0 0 22px; }
+  .resumo { background:var(--verde-claro); border-radius:14px; padding:16px 20px; margin:0 0 26px; font-size:15px; }
+  .resumo b { color:var(--verde); }
+  .resumo ul { margin:6px 0 0; padding-left:20px; }
+  h2 { font-size:19px; margin:34px 0 8px; scroll-margin-top:80px; }
+  h3 { font-size:16px; margin:20px 0 4px; }
+  p, li { color:var(--texto-2); font-size:15.5px; }
+  ul { padding-left:22px; }
+  table { width:100%; border-collapse:collapse; font-size:14.5px; margin:10px 0; }
+  th, td { text-align:left; padding:10px 12px; border-bottom:1px solid var(--borda); vertical-align:top; color:var(--texto-2); }
+  th { color:var(--texto); background:var(--fundo); font-weight:600; }
+  .aviso { border-left:4px solid #f59e0b; background:rgba(245,158,11,.08); padding:12px 16px; border-radius:8px; }
+  footer { text-align:center; color:var(--cinza); font-size:13px; padding:0 20px 40px; }
+  @media (max-width: 760px) {
+    main { grid-template-columns:1fr; gap:18px; padding-top:20px; }
+    .indice { position:static; background:var(--card); border:1px solid var(--borda); border-radius:14px; padding:14px 18px; }
+    article { padding:24px 20px; border-radius:14px; }
+    h1 { font-size:25px; }
+    table, thead, tbody, tr, th, td { display:block; } thead { display:none; }
+    td { border:0; padding:3px 0; } tr { border-bottom:1px solid var(--borda); padding:10px 0; }
+    td:first-child { font-weight:600; color:var(--texto); }
+  }
+  html[data-tema="escuro"] { --verde:#3dd68c; --verde-fundo:#198052; --verde-claro:rgba(47,179,122,.14); --texto:#e6edf3; --texto-2:#c3cdd7; --cinza:#94a3b8; --borda:#283340; --fundo:#0e1318; --card:#161d25; }
+  @media print { header, .indice, footer { display:none; } main { display:block; } article { border:0; } }
+
+  /* ---------- modo escuro: comum ---------- */
+  html[data-tema="escuro"] { color-scheme:dark; }
+  html.tema-trocando, html.tema-trocando *, html.tema-trocando *::before, html.tema-trocando *::after {
+    transition:background-color .35s ease, border-color .35s ease, color .35s ease, fill .35s ease, box-shadow .35s ease !important; }
+  .so-escuro { display:none !important; }
+  html[data-tema="escuro"] .so-claro { display:none !important; }
+  html[data-tema="escuro"] .so-escuro { display:revert !important; }
+  .btn-tema { width:36px; height:36px; flex:none; border-radius:50%; border:1px solid var(--borda, #e5e7eb); background:var(--card, #fff); color:var(--texto, #111827);
+    display:grid; place-items:center; cursor:pointer; padding:0; transition:transform .2s; }
+  .btn-tema:hover { transform:rotate(-12deg); }
+  .btn-tema svg { width:18px; height:18px; grid-area:1/1; transition:transform .45s cubic-bezier(.34,1.56,.64,1), opacity .3s; }
+  .btn-tema .sol { transform:rotate(-90deg) scale(.4); opacity:0; }
+  html[data-tema="escuro"] .btn-tema .sol { transform:none; opacity:1; color:#fbbf24; }
+  html[data-tema="escuro"] .btn-tema .lua { transform:rotate(90deg) scale(.4); opacity:0; }
+</style>
+</head>
+<body>
+<header><div class="barra">
+  <a href="/" aria-label="Lembra Aí"><img src="/marca/logo-horizontal.svg" alt="Lembra Aí" class="so-claro" style="height:32px;display:block"><img src="/marca/logo-horizontal-escuro.svg" alt="Lembra Aí" class="so-escuro" style="height:32px;display:block"></a>
+  <nav>
+    <a class="aba " href="/termos">Termos</a>
+    <a class="aba on" href="/privacidade">Privacidade</a>
+    <button type="button" class="btn-tema" data-trocar-tema aria-label="Alternar modo escuro" title="Modo claro/escuro">
+  <svg class="lua" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+  <svg class="sol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+</button>
+  </nav>
+</div></header>
+<main>
+<aside class="indice"><b>Nesta página</b><ol>
+  <li><a href="#quem">Quem cuida dos seus dados</a></li><li><a href="#dados">Quais dados</a></li>
+  <li><a href="#porque">Pra que e com qual base legal</a></li><li><a href="#cartao">Cartão e pagamento</a></li>
+  <li><a href="#compartilha">Com quem compartilhamos</a></li><li><a href="#seguranca">Como protegemos</a></li>
+  <li><a href="#tempo">Por quanto tempo</a></li><li><a href="#direitos">Seus direitos</a></li>
+  <li><a href="#cookies">Cookies</a></li><li><a href="#menores">Menores de idade</a></li>
+  <li><a href="#mudancas">Mudanças</a></li><li><a href="#contato">Contato</a></li>
+</ol></aside>
+<article>
+<h1>Política de privacidade</h1>
+<p class="data">Versão {{VERSAO}} · em vigor desde {{ATUALIZADO}}</p>
+
+<div class="resumo"><b>Resumo rápido</b> (não substitui o texto completo):
+<ul>
+  <li>A gente só pede o que precisa pra te lembrar das contas: nome, e-mail, WhatsApp e os dados dos lembretes.</li>
+  <li>Seus dados ficam <b>criptografados</b> no banco. Nem quem acessa o banco consegue ler.</li>
+  <li><b>Não vendemos</b> seus dados e não usamos pra propaganda.</li>
+  <li><b>Nunca guardamos dados de cartão.</b></li>
+  <li>Você pode baixar uma cópia dos seus dados ou excluir sua conta a qualquer momento, direto no site.</li>
+</ul></div>
+
+<p>Esta política explica como o Lembra Aí trata seus dados pessoais, seguindo a Lei Geral de Proteção de Dados (LGPD, Lei nº 13.709/2018).</p>
+
+<h2 id="quem">1. Quem cuida dos seus dados</h2>
+<p>O controlador dos dados é <b>{{RESPONSAVEL}}</b>{{DOCUMENTO}}, em {{CIDADE}}. Pra qualquer assunto de privacidade, o canal é <a href="mailto:{{CONTATO}}">{{CONTATO}}</a>.</p>
+
+<h2 id="dados">2. Quais dados a gente trata</h2>
+<table>
+  <thead><tr><th>De onde vem</th><th>Quais dados</th></tr></thead>
+  <tbody>
+    <tr><td>Cadastro</td><td>Nome, e-mail e senha. A senha é guardada só em forma de hash (Argon2id), que não dá pra transformar de volta na senha. Também guardamos a data em que você aceitou os termos.</td></tr>
+    <tr><td>WhatsApp</td><td>O número que você confirmou e o identificador interno dele no WhatsApp. O código de confirmação vale 10 minutos e é guardado só em hash.</td></tr>
+    <tr><td>Lembretes</td><td>Nome da conta (ex.: "Conta de luz"), valor (se você informar), dia ou data do vencimento, quando quer ser avisado, mensagem personalizada, ícone e cor, e quando marcou como paga.</td></tr>
+    <tr><td>Avisos</td><td>O texto de cada aviso enviado, o horário e se foi entregue.</td></tr>
+    <tr><td>Suas respostas no WhatsApp</td><td>Lemos as mensagens que você manda pro número do Lembra Aí só pra entender comandos como "paguei". <b>O conteúdo das suas mensagens não é guardado.</b></td></tr>
+    <tr><td>Quem escreve sem ter conta</td><td>O número é transformado num código irreversível, usado só pra não mandar o convite de cadastro mais de uma vez por semana. O número em si não fica guardado.</td></tr>
+    <tr><td>Plano</td><td>Se a conta é Grátis ou Premium, e até quando vale o Premium.</td></tr>
+    <tr><td>Segurança</td><td>O endereço IP é usado na hora, em memória, pra limitar tentativas de senha e cadastros em massa. Ele não é gravado no nosso banco de dados. O provedor de hospedagem pode manter registros técnicos de acesso por alguns dias.</td></tr>
+  </tbody>
+</table>
+
+<h2 id="porque">3. Pra que usamos e com qual base legal</h2>
+<table>
+  <thead><tr><th>Finalidade</th><th>Base legal (LGPD, art. 7º)</th></tr></thead>
+  <tbody>
+    <tr><td>Criar e manter sua conta, mandar os avisos, entender o "paguei" e mostrar o histórico</td><td>Execução do contrato que você aceitou (inciso V)</td></tr>
+    <tr><td>Confirmar que o WhatsApp é seu, proteger contra invasão, abuso e spam</td><td>Legítimo interesse (inciso IX) e execução do contrato</td></tr>
+    <tr><td>Convidar uma única vez quem escreveu pro número sem ter conta</td><td>Legítimo interesse (inciso IX)</td></tr>
+    <tr><td>Cobrança do Premium e obrigações fiscais</td><td>Execução do contrato (V) e obrigação legal (II)</td></tr>
+  </tbody>
+</table>
+<p>Não usamos seus dados pra propaganda, não montamos perfil de consumo e não vendemos nem alugamos dados pra ninguém.</p>
+
+<h2 id="cartao">4. Cartão e dados de pagamento</h2>
+<div class="aviso"><p style="margin:0"><b>O Lembra Aí não recebe, não vê e não guarda número de cartão, código de segurança ou dados bancários.</b></p></div>
+<ul>
+  <li>O pagamento do Premium acontece no ambiente da plataforma de pagamentos parceira (como o Asaas), que segue as regras de segurança do mercado de cartões (PCI DSS) e tem a própria política de privacidade. A gente recebe dela só a confirmação de que o pagamento foi feito.</li>
+  <li>Os lembretes de fatura do cartão guardam só o que você escreveu (ex.: "Fatura Nubank") e o valor, e isso fica criptografado como todo o resto.</li>
+  <li>Se você tentar colocar um número de cartão num lembrete, o sistema recusa, pra te proteger.</li>
+  <li>A gente nunca vai pedir dados de cartão, senha do banco ou código por WhatsApp. Se alguém pedir em nome do Lembra Aí, é golpe.</li>
+</ul>
+
+<h2 id="compartilha">5. Com quem compartilhamos</h2>
+<p>Só com empresas que fazem o serviço funcionar (operadores), e só o necessário:</p>
+<table>
+  <thead><tr><th>Empresa</th><th>Pra quê</th><th>O que recebe</th></tr></thead>
+  <tbody>
+    <tr><td>Supabase</td><td>Banco de dados</td><td>Os dados pessoais, já criptografados. Ficam abertas só as datas e configurações dos avisos, que o sistema precisa pra saber quando enviar.</td></tr>
+    <tr><td>Render</td><td>Hospedagem do site e do sistema</td><td>Os dados passam pelo servidor pra funcionar. A chave da criptografia fica só lá.</td></tr>
+    <tr><td>WhatsApp (Meta)</td><td>Entregar os avisos</td><td>Seu número e o texto de cada aviso</td></tr>
+    <tr><td>Google (Gemini)</td><td>Sugestões de mensagem com IA (Premium)</td><td>Só o tipo de conta e o tom escolhido. <b>Nenhum dado pessoal.</b></td></tr>
+    <tr><td>Plataforma de pagamentos (ex.: Asaas)</td><td>Cobrança do Premium</td><td>Os dados que você informa direto pra ela na hora de pagar</td></tr>
+  </tbody>
+</table>
+<p>Alguns desses serviços guardam dados em servidores fora do Brasil (como nos Estados Unidos). Essa transferência segue o art. 33 da LGPD, com empresas que adotam padrões de proteção compatíveis. Também podemos compartilhar dados se uma lei ou ordem judicial exigir.</p>
+
+<h2 id="seguranca">6. Como protegemos</h2>
+<ul>
+  <li><b>Criptografia AES-256-GCM</b> no banco de dados: nome, e-mail, telefone, os dados dos lembretes, o texto dos avisos e a sessão do WhatsApp do sistema. Quem acessa o banco vê só códigos ilegíveis.</li>
+  <li>A chave da criptografia fica separada do banco, só no servidor.</li>
+  <li>Pra achar sua conta no login sem guardar o e-mail aberto, usamos um código irreversível (HMAC-SHA256).</li>
+  <li>Senhas com <b>Argon2id</b>, o método recomendado hoje pra guardar senhas.</li>
+  <li>Conexão sempre com HTTPS, sessão em cookie protegido e limite de tentativas de senha.</li>
+  <li>O banco não aceita acesso público: só o servidor do Lembra Aí consegue ler.</li>
+</ul>
+<p>Nenhum sistema é 100% invulnerável. Se acontecer um incidente de segurança que possa te causar risco ou dano relevante, você e a Autoridade Nacional de Proteção de Dados (ANPD) vão ser avisados, como manda o art. 48 da LGPD.</p>
+
+<h2 id="tempo">7. Por quanto tempo guardamos</h2>
+<ul>
+  <li>Enquanto sua conta existir.</li>
+  <li>Quando você exclui a conta, a conta, os lembretes, os pagamentos marcados e o histórico de avisos são apagados na hora do banco de dados. Cópias de segurança automáticas do provedor, se existirem, somem no ciclo normal delas, em até 30 dias.</li>
+  <li>Registros de pagamento do Premium podem ser mantidos pelo prazo que a lei fiscal exige (em geral, 5 anos).</li>
+</ul>
+
+<h2 id="direitos">8. Seus direitos</h2>
+<p>A LGPD (art. 18) garante que você pode:</p>
+<ul>
+  <li><b>confirmar e acessar</b> seus dados: no site, menu da conta → <b>Baixar meus dados</b>;</li>
+  <li><b>levar seus dados</b> pra outro serviço (portabilidade): o arquivo baixado vem num formato aberto (JSON);</li>
+  <li><b>excluir</b> sua conta e seus dados: menu da conta → <b>Excluir minha conta</b>;</li>
+  <li><b>corrigir</b> dados errados: edite os lembretes no site ou peça pelo contato;</li>
+  <li><b>saber com quem</b> compartilhamos (item 5) e <b>se opor</b> a algum tratamento;</li>
+  <li><b>reclamar na ANPD</b>, em <a href="https://www.gov.br/anpd" target="_blank" rel="noopener">gov.br/anpd</a>.</li>
+</ul>
+<p>Pedidos feitos pelo contato são respondidos em até 15 dias.</p>
+
+<h2 id="cookies">9. Cookies e armazenamento no navegador</h2>
+<ul>
+  <li><b>Cookie de sessão</b> (obrigatório): mantém você logado por até 30 dias. Ele é protegido (HttpOnly) e não serve pra rastrear você em outros sites.</li>
+  <li><b>Armazenamento local</b>: guarda se você prefere o modo claro ou escuro e se já viu o passo a passo. Fica só no seu aparelho.</li>
+  <li>Não usamos cookies de propaganda nem ferramentas de rastreamento de terceiros.</li>
+</ul>
+
+<h2 id="menores">10. Menores de idade</h2>
+<p>O Lembra Aí não é feito pra menores de 18 anos, e o cadastro exige ter 18 anos ou mais. Se descobrirmos uma conta de menor, ela é excluída.</p>
+
+<h2 id="mudancas">11. Mudanças nesta política</h2>
+<p>Se esta política mudar de forma importante, você vai ser avisado no site antes. A data e a versão ficam sempre no topo da página.</p>
+
+<h2 id="contato">12. Contato</h2>
+<p>Dúvidas, pedidos ou reclamações sobre seus dados: <a href="mailto:{{CONTATO}}">{{CONTATO}}</a>.</p>
+</article>
+</main>
+<footer>© {{ANO}} Lembra Aí · {{CIDADE}}</footer>
+
+<script>
+/* botão de tema + acompanha o aparelho enquanto a pessoa não escolher */
+(function () {
+  var raiz = document.documentElement;
+  function corBarra() { var m = document.querySelector('meta[name="theme-color"]'); if (m) m.content = raiz.dataset.tema === 'escuro' ? '#0e1318' : '#0FA055'; }
+  function aplicar(t, salvar) {
+    raiz.classList.add('tema-trocando');
+    raiz.dataset.tema = t; corBarra();
+    if (salvar) { try { localStorage.setItem('lembraai:tema', t); } catch (e) {} }
+    clearTimeout(aplicar.t); aplicar.t = setTimeout(function () { raiz.classList.remove('tema-trocando'); }, 400);
+  }
+  document.querySelectorAll('[data-trocar-tema]').forEach(function (b) {
+    b.addEventListener('click', function () { aplicar(raiz.dataset.tema === 'escuro' ? 'claro' : 'escuro', true); });
+  });
+  var mq = matchMedia('(prefers-color-scheme: dark)');
+  var ouvir = function (e) { var salvo = null; try { salvo = localStorage.getItem('lembraai:tema'); } catch (x) {} if (!salvo) aplicar(e.matches ? 'escuro' : 'claro', false); };
+  if (mq.addEventListener) mq.addEventListener('change', ouvir);
+  corBarra();
+})();
+</script>
+</body>
+</html>

@@ -16,6 +16,9 @@ services:
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
+      # chave da criptografia dos dados pessoais (gere com: npm run gerar-chave). Sem ela o servidor não sobe.
+      - key: CHAVE_DADOS
+        sync: false
       - key: ADMIN_EMAIL
         sync: false
       - key: GEMINI_API_KEY
@@ -26,3 +29,12 @@ services:
         value: "79,90"
       - key: PREMIUM_LINK
         sync: false
+      # quem responde pelo serviço (aparece nos Termos de uso e na Política de privacidade)
+      - key: RESPONSAVEL_NOME
+        sync: false
+      - key: RESPONSAVEL_DOCUMENTO
+        sync: false
+      - key: CONTATO_EMAIL
+        sync: false
+      - key: CIDADE
+        value: Toledo, PR

@@ -15,18 +15,22 @@ import makeWASocket, {
 } from 'baileys';
 import pino from 'pino';
 import { supabase } from './supabase.js';
+import { cifrar, decifrar, ctx } from './cripto.js';
 
 const logger = pino({ level: process.env.LOG_LEVEL || 'warn' });
 const TABELA = 'sistema_auth';
 
 // ---------- sessão no Supabase ----------
-const serializar = (v) => JSON.parse(JSON.stringify(v, BufferJSON.replacer));
-const desserializar = (v) => JSON.parse(JSON.stringify(v), BufferJSON.reviver);
+// As chaves da sessão do WhatsApp (quem tiver isso controla o número) ficam cifradas: { c: "c1...." }
+export const fecharSessao = (id, valor) => ({ c: cifrar(JSON.stringify(valor, BufferJSON.replacer), ctx('sistema_auth', 'data', id)) });
+export const abrirSessao = (id, data) => (data && typeof data.c === 'string'
+  ? JSON.parse(decifrar(data.c, ctx('sistema_auth', 'data', id)), BufferJSON.reviver)
+  : JSON.parse(JSON.stringify(data), BufferJSON.reviver)); // formato antigo, ainda aberto
 
 async function gravar(linhas) {
   if (!linhas.length) return;
   const { error } = await supabase.from(TABELA).upsert(
-    linhas.map(({ id, valor }) => ({ id, data: serializar(valor), updated_at: new Date().toISOString() })),
+    linhas.map(({ id, valor }) => ({ id, data: fecharSessao(id, valor), updated_at: new Date().toISOString() })),
   );
   if (error) throw error;
 }
@@ -45,7 +49,7 @@ async function apagarSessao() {
 async function carregarSessao() {
   const { data, error } = await supabase.from(TABELA).select('data').eq('id', 'creds').maybeSingle();
   if (error) throw error;
-  const creds = data ? desserializar(data.data) : initAuthCreds();
+  const creds = data ? abrirSessao('creds', data.data) : initAuthCreds();
   return {
     temSessao: Boolean(data),
     state: {
@@ -57,7 +61,7 @@ async function carregarSessao() {
           const { data: linhas, error: erro } = await supabase
             .from(TABELA).select('id, data').in('id', ids.map((id) => `${tipo}-${id}`));
           if (erro) throw erro;
-          const mapa = new Map((linhas || []).map((l) => [l.id, desserializar(l.data)]));
+          const mapa = new Map((linhas || []).map((l) => [l.id, abrirSessao(l.id, l.data)]));
           for (const id of ids) {
             let valor = mapa.get(`${tipo}-${id}`) ?? null;
             if (tipo === 'app-state-sync-key' && valor) valor = proto.Message.AppStateSyncKeyData.fromObject(valor);

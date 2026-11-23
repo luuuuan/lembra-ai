@@ -4,6 +4,7 @@ import cron from 'node-cron';
 import { supabase } from './supabase.js';
 import { online, enviarTexto } from './whatsapp.js';
 import { situacaoDasContas, noPlano } from './planos.js';
+import { abrirConta, abrirLembrete, cifrarTextoEnvio } from './cripto.js';
 
 const FUSO = '-03:00';
 const HORIZONTE_DIAS = 45; // gera os avisos dos próximos 45 dias
@@ -147,13 +148,14 @@ export async function regenerar(lembrete) {
 export async function regenerarConta(contaId) {
   const { data, error } = await supabase.from('lembretes').select('*').eq('conta_id', contaId);
   if (error) throw error;
-  for (const l of data || []) await regenerar(l);
+  for (const l of data || []) await regenerar(abrirLembrete(l));
 }
 
 // De tempos em tempos: garante que os avisos dos próximos meses existam
 export async function gerarTodos() {
-  const { data, error } = await supabase.from('lembretes').select('*').eq('ativo', true).limit(10000);
+  const { data: linhas, error } = await supabase.from('lembretes').select('*').eq('ativo', true).limit(10000);
   if (error) throw error;
+  const data = (linhas || []).map(abrirLembrete);
   const pagos = await pagamentosDe((data || []).map((l) => l.id));
   const situacoes = await situacaoDasContas((data || []).map((l) => l.conta_id));
   return gravarAvisos((data || []).flatMap((l) => avisosPrevistos(noPlano(l, situacoes.get(l.conta_id)), new Date(), pagos)));
@@ -213,8 +215,8 @@ export async function dispararPendentes() {
       supabase.from('contas').select('id, nome, telefone_jid, telefone_verificado_em').in('id', idsContas),
     ]);
     const situacoes = await situacaoDasContas(idsContas);
-    const lembretePor = new Map((lembretes || []).map((l) => [l.id, noPlano(l, situacoes.get(l.conta_id))]));
-    const contaPor = new Map((contas || []).map((c) => [c.id, c]));
+    const lembretePor = new Map((lembretes || []).map(abrirLembrete).map((l) => [l.id, noPlano(l, situacoes.get(l.conta_id))]));
+    const contaPor = new Map((contas || []).map((c) => [c.id, abrirConta(c)]));
 
     for (const envio of envios.sort((x, y) => x.enviar_em.localeCompare(y.enviar_em))) {
       const atrasoMin = (Date.now() - new Date(envio.enviar_em).getTime()) / 60_000;
@@ -243,10 +245,10 @@ export async function dispararPendentes() {
       const texto = montarTexto({ lembrete, nome: conta.nome, vencimento: envio.vencimento, diasAntes: envio.dias_antes });
       try {
         const msgId = await enviarTexto(conta.telefone_jid, texto);
-        await marcar(envio.id, { status: 'enviado', texto, msg_id: msgId, erro: null, enviado_em: new Date().toISOString() });
-        console.log(`Lembrete enviado: ${lembrete.titulo} -> ${conta.id.slice(0, 8)}`);
+        await marcar(envio.id, { status: 'enviado', texto: cifrarTextoEnvio(envio.id, texto), msg_id: msgId, erro: null, enviado_em: new Date().toISOString() });
+        console.log(`Lembrete enviado: ${lembrete.tipo} -> ${conta.id.slice(0, 8)}`); // sem dado pessoal no log
       } catch (e) {
-        await marcar(envio.id, { status: 'erro', texto, erro: e.message });
+        await marcar(envio.id, { status: 'erro', texto: cifrarTextoEnvio(envio.id, texto), erro: e.message });
       }
       await new Promise((r) => setTimeout(r, 2000 + Math.random() * 2000)); // intervalo entre envios
     }

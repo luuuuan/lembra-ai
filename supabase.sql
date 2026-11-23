@@ -2,17 +2,25 @@
 -- Os nomes das tabelas não batem com os do Agendador, então dá pra usar um projeto novo
 -- ou o mesmo projeto do Agendador, sem conflito.
 
+-- Dados pessoais (nome, e-mail, telefone, nome/valor/mensagem dos lembretes, texto dos avisos e a sessão
+-- do WhatsApp) ficam CIFRADOS pelo servidor com AES-256-GCM antes de chegar aqui. O banco só vê "c1.xxxx".
+-- As colunas *_indice são índices cegos (HMAC-SHA256): servem pra achar a conta sem guardar o dado aberto.
+-- A chave fica só no servidor (variável CHAVE_DADOS no Render), nunca no banco.
+
 -- 1) Contas
 create table if not exists public.contas (
   id                     uuid primary key default gen_random_uuid(),
-  nome                   text not null,
-  email                  text not null unique,
-  senha_hash             text not null,
-  telefone               text,          -- como a pessoa digitou (só números)
-  telefone_jid           text,          -- id do WhatsApp, preenchido depois de confirmar
+  nome                   text not null, -- cifrado
+  email                  text not null unique, -- cifrado
+  email_indice           text,          -- índice cego do e-mail (login)
+  senha_hash             text not null, -- Argon2id
+  telefone               text,          -- cifrado
+  telefone_jid           text,          -- cifrado (id do WhatsApp, depois de confirmar)
+  telefone_jid_indice    text,          -- índice cego do WhatsApp (achar a conta quando a pessoa responde)
   telefone_verificado_em timestamptz,
-  telefone_pendente      text,          -- número esperando confirmação (troca de número)
-  jid_pendente           text,
+  telefone_pendente      text,          -- cifrado (número esperando confirmação)
+  jid_pendente           text,          -- cifrado
+  jid_pendente_indice    text,
   codigo_hash            text,          -- código de confirmação (hash), temporário
   codigo_expira          timestamptz,
   codigo_tentativas      int not null default 0,
@@ -24,8 +32,18 @@ create table if not exists public.contas (
 alter table public.contas add column if not exists plano text not null default 'gratis';
 alter table public.contas add column if not exists premium_ate timestamptz;
 
-create unique index if not exists contas_telefone_unico
-  on public.contas (telefone_jid) where telefone_verificado_em is not null;
+alter table public.contas add column if not exists email_indice text;
+alter table public.contas add column if not exists telefone_jid_indice text;
+alter table public.contas add column if not exists jid_pendente_indice text;
+alter table public.contas add column if not exists termos_versao text;        -- versão dos termos aceita no cadastro
+alter table public.contas add column if not exists termos_aceitos_em timestamptz;
+
+-- buscas e unicidade pelos índices cegos (o dado cifrado muda a cada gravação, então não serve pra isso)
+drop index if exists public.contas_telefone_unico;
+create unique index if not exists contas_email_indice_unico on public.contas (email_indice);
+create unique index if not exists contas_telefone_indice_unico
+  on public.contas (telefone_jid_indice) where telefone_verificado_em is not null;
+create index if not exists contas_jid_pendente_indice_idx on public.contas (jid_pendente_indice);
 
 -- 2) Lembretes (a "conta de luz", o "aluguel"...)
 create table if not exists public.lembretes (
@@ -33,14 +51,15 @@ create table if not exists public.lembretes (
   conta_id      uuid not null references public.contas (id) on delete cascade,
   tipo          text not null default 'outro'
                 check (tipo in ('luz', 'agua', 'internet', 'aluguel', 'cartao', 'boleto', 'outro')),
-  titulo        text not null,
-  valor         numeric(12, 2),
+  titulo        text not null,                       -- cifrado
+  valor         numeric(12, 2),                      -- não usado mais (fica vazio): o valor vai cifrado em valor_cifrado
+  valor_cifrado text,
   frequencia    text not null default 'mensal' check (frequencia in ('mensal', 'unica')),
   dia           int check (dia between 1 and 31),   -- mensal: dia do vencimento
   data          date,                                -- única: data do vencimento
   avisos        int[] not null default '{0}',        -- dias de antecedência (0 = no dia)
   horario       time not null default '09:00',
-  mensagem      text,                                -- vazio = mensagem padrão
+  mensagem      text,                                -- cifrado (vazio = mensagem padrão)
   icone         text,                                -- ícone escolhido (vazio = o do tipo)
   cor           text,                                -- cor escolhida (vazio = a do tipo)
   ativo         boolean not null default true,
@@ -54,6 +73,7 @@ create index if not exists lembretes_conta_idx on public.lembretes (conta_id);
 -- (pra quem já tinha rodado uma versão anterior deste script)
 alter table public.lembretes add column if not exists icone text;
 alter table public.lembretes add column if not exists cor text;
+alter table public.lembretes add column if not exists valor_cifrado text;
 
 -- 3) Envios (cada aviso que vai sair: "conta de luz, vencimento 10/12, 3 dias antes")
 create table if not exists public.envios (
@@ -65,7 +85,7 @@ create table if not exists public.envios (
   enviar_em   timestamptz not null,
   status      text not null default 'pendente'
               check (status in ('pendente', 'enviando', 'enviado', 'erro', 'expirado', 'cancelado')),
-  texto       text,
+  texto       text,                -- cifrado
   msg_id      text,                -- id da mensagem no WhatsApp (pra saber qual aviso a pessoa respondeu)
   erro        text,
   enviado_em  timestamptz,
@@ -90,7 +110,7 @@ create index if not exists pagamentos_conta_idx on public.pagamentos (conta_id, 
 
 -- 3c) Números sem conta que já receberam o convite de cadastro (no máximo 1 vez por semana)
 create table if not exists public.contatos_desconhecidos (
-  chave         text primary key,
+  chave         text primary key,   -- índice cego do número (o número em si não fica guardado)
   respondido_em timestamptz not null default now(),
   vezes         int not null default 1
 );
@@ -98,7 +118,7 @@ create table if not exists public.contatos_desconhecidos (
 -- 4) Sessão do WhatsApp do sistema (o seu chip)
 create table if not exists public.sistema_auth (
   id         text primary key,
-  data       jsonb not null,
+  data       jsonb not null,  -- { "c": "c1...." }: chaves da sessão cifradas
   updated_at timestamptz not null default now()
 );
 

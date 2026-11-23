@@ -205,6 +205,7 @@
   html[data-tema="escuro"] .bolha.enviada { background:#005c4b; color:#e9edef; }
   html[data-tema="escuro"] .bolha i { color:#aebac1; } html[data-tema="escuro"] .bolha .h { color:#8696a0; }
   nav .btn-tema { width:34px; height:34px; }
+  footer .links-legais a { color:inherit; } footer .links-legais { font-size:14px; }
   .final .botao { color:var(--verde-fundo); }
   .plano li.nao { color:#7b8799; }
   html[data-tema="escuro"] .plano li.nao { color:#8a97a8; }
@@ -425,6 +426,7 @@
 <footer>
   <div class="container">
     <a class="marca" href="/"><img src="/marca/logo-horizontal.svg" alt="Lembra Aí" class="so-claro" style="height:30px;display:block"><img src="/marca/logo-horizontal-escuro.svg" alt="Lembra Aí" class="so-escuro" style="height:30px;display:block"></a>
+    <span class="links-legais"><a href="/termos">Termos de uso</a> · <a href="/privacidade">Privacidade</a></span>
     <span>© <span id="ano"></span> Lembra Aí · Toledo, PR</span>
   </div>
 </footer>
@@ -503,6 +505,14 @@ fetch('/api/planos').then((r) => r.json()).then((p) => {
   if (mq.addEventListener) mq.addEventListener('change', ouvir);
   corBarra();
 })();
+</script>
+<div id="avisoExcluida" hidden style="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:50;background:#0f172a;color:#fff;padding:14px 20px;border-radius:14px;font-size:15px;box-shadow:0 14px 40px rgba(0,0,0,.25);max-width:92vw;text-align:center">Sua conta foi excluída e seus dados foram apagados. Obrigado por ter usado o Lembra Aí. 💚</div>
+<script>
+if (location.search.includes('conta-excluida')) {
+  const a = document.getElementById('avisoExcluida'); a.hidden = false;
+  history.replaceState(null, '', '/');
+  setTimeout(() => { a.style.transition = 'opacity .4s'; a.style.opacity = 0; setTimeout(() => (a.hidden = true), 450); }, 6000);
+}
 </script>
 </body>
 </html>

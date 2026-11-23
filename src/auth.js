@@ -1,8 +1,13 @@
-// Login, cadastro e sessão por cookie — sem dependências externas (mesma base do Agendador).
-// Senhas: scrypt com sal. Sessão: cookie assinado (HMAC) com validade de 30 dias.
-import { scrypt as scryptCb, randomBytes, timingSafeEqual, createHmac, createHash } from 'node:crypto';
+// Login, cadastro e sessão por cookie.
+// Senhas: Argon2id (recomendação atual da OWASP). Contas antigas com scrypt passam pro Argon2id no próximo login.
+// Nome, e-mail e telefone ficam cifrados no banco (cripto.js); o login acha a conta pelo índice cego do e-mail.
+// Sessão: cookie assinado (HMAC) com validade de 30 dias.
+import { scrypt as scryptCb, timingSafeEqual, createHmac, createHash, randomUUID } from 'node:crypto';
 import { promisify } from 'node:util';
+import argon2 from 'argon2';
 import { supabase } from './supabase.js';
+import { abrirConta, fecharConta, indice } from './cripto.js';
+import { TERMOS_VERSAO } from './legal.js';
 import { criarLimite, recusar } from './limites.js';
 import { ehPremium } from './planos.js';
 
@@ -19,19 +24,27 @@ const ADMINS = (process.env.ADMIN_EMAIL || '').split(',').map((e) => e.trim().to
 export const ehAdmin = (email) => ADMINS.includes(String(email).toLowerCase());
 
 // ---------- senha ----------
-async function gerarHash(senha) {
-  const sal = randomBytes(16);
-  const hash = await scrypt(senha, sal, 64);
-  return `scrypt$${sal.toString('base64')}$${hash.toString('base64')}`;
-}
+// Argon2id com os parâmetros mínimos da OWASP (19 MiB de memória, 2 passadas): leve pro servidor,
+// caro pra quem tentar adivinhar senhas em massa.
+const ARGON = { type: argon2.argon2id, memoryCost: 19456, timeCost: 2, parallelism: 1 };
+const gerarHash = (senha) => argon2.hash(senha, ARGON);
+const precisaAtualizar = (guardado) => !String(guardado).startsWith('$argon2id$') || argon2.needsRehash(guardado, ARGON);
 
 async function conferirSenha(senha, guardado) {
-  const [alg, salB64, hashB64] = String(guardado).split('$');
+  const g = String(guardado || '');
+  if (g.startsWith('$argon2')) {
+    try { return await argon2.verify(g, senha); } catch { return false; }
+  }
+  // formato antigo (scrypt), das contas criadas antes
+  const [alg, salB64, hashB64] = g.split('$');
   if (alg !== 'scrypt' || !salB64 || !hashB64) return false;
   const esperado = Buffer.from(hashB64, 'base64');
   const calculado = await scrypt(senha, Buffer.from(salB64, 'base64'), esperado.length);
   return timingSafeEqual(esperado, calculado);
 }
+// Conta inexistente também gasta o tempo de uma conferência (não dá pra descobrir e-mails cadastrados pelo tempo)
+let hashFalso = null;
+const conferirFalso = async (senha) => { hashFalso ||= await gerarHash('senha-que-ninguem-tem'); await conferirSenha(senha, hashFalso); return false; };
 
 // ---------- token da sessão ----------
 const assinar = (dados) => createHmac('sha256', SEGREDO).update(dados).digest('base64url');
@@ -81,8 +94,9 @@ const cacheUsuarios = new Map(); // id -> { usuario, ate } (evita ir no banco a 
 async function buscarUsuario(id) {
   const c = cacheUsuarios.get(id);
   if (c && c.ate > Date.now()) return c.usuario;
-  const { data } = await supabase
+  const { data: linha } = await supabase
     .from('contas').select('id, nome, email, telefone, telefone_verificado_em, plano, premium_ate').eq('id', id).maybeSingle();
+  const data = abrirConta(linha);
   const usuario = data // nunca expõe hash de senha nem código
     ? {
       id: data.id, nome: data.nome, email: data.email, admin: ehAdmin(data.email),
@@ -134,16 +148,20 @@ export function rotasDeConta(app) {
       if (nome.length < 2) return res.status(400).json({ erro: 'Digite seu nome' });
       if (!emailValido(email)) return res.status(400).json({ erro: 'E-mail inválido' });
       if (senha.length < 8) return res.status(400).json({ erro: 'A senha precisa ter pelo menos 8 caracteres' });
+      if (req.body?.aceite !== true) return res.status(400).json({ erro: 'Pra criar a conta, aceite os Termos de uso e a Política de privacidade' });
 
-      const { data: existe } = await supabase.from('contas').select('id').eq('email', email).maybeSingle();
+      const { data: existe } = await supabase.from('contas').select('id').eq('email_indice', indice('email', email)).maybeSingle();
       if (existe) return res.status(409).json({ erro: 'Já existe uma conta com esse e-mail' });
 
-      const { data: usuario, error } = await supabase
+      const id = randomUUID(); // o id entra na cifra, por isso é gerado aqui
+      const { error } = await supabase
         .from('contas')
-        .insert({ nome, email, senha_hash: await gerarHash(senha) })
-        .select('id, nome, email')
-        .single();
+        .insert({
+          id, ...fecharConta(id, { nome, email }), senha_hash: await gerarHash(senha),
+          termos_versao: TERMOS_VERSAO, termos_aceitos_em: new Date().toISOString(), // prova do aceite (LGPD)
+        });
       if (error) throw error;
+      const usuario = { id, nome, email };
       cadastrosPorIp.registrar(req.ip);
 
       gravarCookie(req, res, criarToken(usuario.id), VALIDADE_MS);
@@ -164,9 +182,11 @@ export function rotasDeConta(app) {
       const porEmail = falhasPorEmail.checar(email);
       if (!porEmail.liberado) return recusar(res, porEmail.esperaSeg, 'Muitas senhas erradas nesta conta');
 
-      const { data: usuario } = await supabase
-        .from('contas').select('id, nome, email, senha_hash').eq('email', email).maybeSingle();
-      if (!usuario || !(await conferirSenha(senha, usuario.senha_hash))) {
+      const { data: linha } = await supabase
+        .from('contas').select('id, nome, email, senha_hash').eq('email_indice', indice('email', email)).maybeSingle();
+      const usuario = abrirConta(linha);
+      const certa = usuario ? await conferirSenha(senha, usuario.senha_hash) : await conferirFalso(senha);
+      if (!certa) {
         falhasPorEmail.registrar(email);
         falhasPorIp.registrar(req.ip);
         await espera(400 + Math.random() * 300); // deixa o chute de senha mais lento
@@ -176,6 +196,9 @@ export function rotasDeConta(app) {
         });
       }
       falhasPorEmail.zerar(email);
+      if (precisaAtualizar(usuario.senha_hash)) { // scrypt antigo -> Argon2id, sem a pessoa perceber
+        await supabase.from('contas').update({ senha_hash: await gerarHash(senha) }).eq('id', usuario.id);
+      }
       gravarCookie(req, res, criarToken(usuario.id), VALIDADE_MS);
       res.json({ id: usuario.id, nome: usuario.nome, email: usuario.email, admin: ehAdmin(usuario.email) });
     } catch (e) {
@@ -189,4 +212,28 @@ export function rotasDeConta(app) {
   });
 
   app.get('/api/me', exigirLoginApi, (req, res) => res.json(req.usuario));
+
+  // Excluir a conta (LGPD art. 18): pede a senha de novo e apaga tudo. Lembretes, avisos e pagamentos
+  // marcados somem junto (o banco apaga em cascata).
+  app.post('/api/conta/excluir', exigirLoginApi, async (req, res) => {
+    try {
+      const chave = `excluir:${req.usuario.id}`;
+      const limite = falhasPorEmail.checar(chave);
+      if (!limite.liberado) return recusar(res, limite.esperaSeg, 'Muitas senhas erradas');
+      const { data: linha } = await supabase.from('contas').select('id, senha_hash').eq('id', req.usuario.id).maybeSingle();
+      if (!linha || !(await conferirSenha(String(req.body?.senha || ''), linha.senha_hash))) {
+        falhasPorEmail.registrar(chave);
+        await espera(400 + Math.random() * 300);
+        return res.status(400).json({ erro: 'Senha incorreta' }); // 400 (não 401): o painel trata 401 como sessão expirada
+      }
+      const { error } = await supabase.from('contas').delete().eq('id', req.usuario.id);
+      if (error) throw error;
+      cacheUsuarios.delete(req.usuario.id);
+      gravarCookie(req, res, '', 0);
+      console.log(`Conta excluída a pedido: ${req.usuario.id.slice(0, 8)}`);
+      res.json({ ok: true });
+    } catch (e) {
+      res.status(500).json({ erro: e.message });
+    }
+  });
 }

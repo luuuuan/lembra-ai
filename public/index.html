@@ -48,6 +48,21 @@
   .menu-conta .linha-tel { margin:8px 0 10px; font-size:13px; }
   .menu-conta button { display:flex; align-items:center; justify-content:center; gap:6px; background:var(--card); border:1px solid var(--borda); padding:8px; font-size:13px; }
   .menu-conta .sair { color:var(--vermelho); margin-top:4px; }
+  .menu-conta .item-menu { display:block; text-align:center; background:var(--card); border:1px solid var(--borda); border-radius:8px; padding:8px; font-size:13px; color:var(--texto); text-decoration:none; }
+  .menu-conta .item-menu:hover, .menu-conta button:hover { border-color:var(--borda-forte); }
+  .menu-rodape { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:8px; padding-top:9px; border-top:1px solid var(--borda); font-size:12px; }
+  .menu-conta .menu-rodape span, .menu-rodape a { font-size:12px; color:var(--cinza); word-break:normal; }
+  .menu-conta .link-excluir { background:none; border:0; padding:0; font-size:12px; color:var(--vermelho); text-decoration:underline; }
+  #dlgExcluir { width:min(420px, 95vw); }
+  #formExcluir { padding:24px; }
+  #formExcluir h2 { margin:10px 0 8px; }
+  .ic-perigo { width:48px; height:48px; border-radius:14px; display:grid; place-items:center; background:rgba(220,38,38,.1); color:#dc2626; }
+  .ic-perigo .ic { width:24px; height:24px; margin:0; }
+  .texto-excluir { font-size:14px; line-height:1.55; color:var(--texto-2); margin:0 0 10px; }
+  .texto-excluir a { color:var(--verde); }
+  .btn-perigo { background:#c62828; color:#fff; padding:10px 16px; font-weight:500; }
+  .btn-perigo:hover { background:#a91f1f; } .btn-perigo:disabled { opacity:.6; cursor:wait; }
+  html[data-tema="escuro"] .ic-perigo { background:rgba(248,113,113,.14); color:#fca5a5; }
   .menu-conta .btn-premium { background:linear-gradient(135deg,#f59e0b,#d97706); color:#fff; border:none; padding:6px 12px; font-size:12px; font-weight:600; border-radius:999px; box-shadow:0 4px 12px rgba(217,119,6,.25); }
   .menu-conta .btn-premium .ic { width:14px; height:14px; }
   .menu-conta .selo-premium { font-size:12px; word-break:normal; color:#78350f; }
@@ -435,7 +450,12 @@
         <div class="plano-menu" id="planoMenu"></div>
         <button type="button" id="btnTour">Ver o passo a passo</button>
         <button type="button" id="btnTrocarTel">Trocar meu número</button>
+        <a class="item-menu" id="btnMeusDados" href="/api/conta/dados" download>Baixar meus dados</a>
         <button type="button" class="sair" id="btnSair"><svg class="ic"><use href="#i-sair"/></svg> Sair</button>
+        <div class="menu-rodape">
+          <button type="button" class="link-excluir" id="btnExcluirConta">Excluir minha conta</button>
+          <span><a href="/termos" target="_blank">Termos</a> · <a href="/privacidade" target="_blank">Privacidade</a></span>
+        </div>
       </div>
     </div>
   </div>
@@ -634,6 +654,23 @@
       <div class="resultado" id="adResultado" hidden></div>
     </div>
     <div class="acoes-modal"><button class="secundario">Fechar</button></div>
+  </form>
+</dialog>
+
+<dialog id="dlgExcluir">
+  <form id="formExcluir" novalidate>
+    <div class="ic-perigo"><svg class="ic"><use href="#i-lixo"/></svg></div>
+    <h2>Excluir minha conta</h2>
+    <p class="texto-excluir">Isso apaga sua conta, todos os lembretes, o histórico de avisos e os pagamentos marcados. Os avisos param na hora. <b>Não dá pra desfazer.</b></p>
+    <p class="texto-excluir" id="excluirPremium" hidden>Você tem o Premium ativo. Se quiser pedir reembolso, fale com a gente <b>antes</b> de excluir.</p>
+    <p class="texto-excluir">Quer guardar uma cópia antes? <a href="/api/conta/dados" download>Baixar meus dados</a></p>
+    <label class="campo" for="exSenha">Digite sua senha pra confirmar</label>
+    <input type="password" id="exSenha" autocomplete="current-password">
+    <div class="msg" id="msgExcluir"></div>
+    <div class="acoes-modal">
+      <button type="button" class="secundario" id="exCancelar">Cancelar</button>
+      <button type="submit" class="btn-perigo" id="exConfirmar">Excluir tudo</button>
+    </div>
   </form>
 </dialog>
 
@@ -1332,6 +1369,27 @@ $('admin').addEventListener('close', () => clearInterval(adminTimer));
 // =============== conta ===============
 $('btnConta').onclick = (e) => { e.stopPropagation(); $('menuConta').hidden = !$('menuConta').hidden; };
 document.addEventListener('click', (e) => { if (!$('menuConta').contains(e.target)) $('menuConta').hidden = true; });
+// ----- excluir conta -----
+$('btnExcluirConta').onclick = () => {
+  $('menuConta').hidden = true;
+  $('exSenha').value = ''; msg('msgExcluir', '', '');
+  $('excluirPremium').hidden = !usuario.premium;
+  $('dlgExcluir').showModal(); setTimeout(() => $('exSenha').focus(), 60);
+};
+$('exCancelar').onclick = () => $('dlgExcluir').close();
+$('formExcluir').onsubmit = async (e) => {
+  e.preventDefault();
+  const senha = $('exSenha').value;
+  if (!senha) return msg('msgExcluir', 'Digite sua senha');
+  $('exConfirmar').disabled = true; msg('msgExcluir', 'Excluindo...', '');
+  try {
+    await api('/api/conta/excluir', { method: 'POST', body: { senha } });
+    try { Object.keys(localStorage).filter((k) => k.includes(usuario.id)).forEach((k) => localStorage.removeItem(k)); } catch { /* ok */ }
+    location.replace('/?conta-excluida');
+  } catch (err) { msg('msgExcluir', err.message); $('exConfirmar').disabled = false; $('exSenha').select(); }
+};
+$('btnMeusDados').onclick = () => { $('menuConta').hidden = true; toast('Baixando seus dados...', false, 'check'); };
+
 $('btnSair').onclick = async () => { await fetch('/api/logout', { method: 'POST' }); location.replace('/login'); };
 
 

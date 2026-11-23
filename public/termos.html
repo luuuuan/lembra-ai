@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" type="image/svg+xml" href="/marca/favicon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<meta name="theme-color" content="#0FA055">
+<script>
+/* tema: escolha salva > configuração do aparelho (roda antes de desenhar a página, sem piscar) */
+(function () {
+  var salvo = null; try { salvo = localStorage.getItem('lembraai:tema'); } catch (e) {}
+  var escuro = salvo ? salvo === 'escuro' : matchMedia('(prefers-color-scheme: dark)').matches;
+  document.documentElement.dataset.tema = escuro ? 'escuro' : 'claro';
+})();
+</script>
+<title>Termos de uso — Lembra Aí</title>
+<style>
+  :root { --verde:#1b8558; --verde-fundo:#1b8558; --verde-claro:#e7f5ee; --texto:#0f172a; --texto-2:#334155; --cinza:#64748b; --borda:#e5e7eb; --fundo:#f7f8fa; --card:#fff; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color:var(--texto); background:var(--fundo); line-height:1.7; }
+  a { color:var(--verde); }
+  header { position:sticky; top:0; z-index:5; background:var(--card); border-bottom:1px solid var(--borda); }
+  header .barra { max-width:920px; margin:0 auto; padding:12px 20px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  header nav { display:flex; align-items:center; gap:8px; font-size:14px; }
+  header nav a.aba { text-decoration:none; color:var(--cinza); padding:6px 12px; border-radius:999px; }
+  header nav a.aba.on { background:var(--verde-claro); color:var(--verde); font-weight:600; }
+  main { max-width:920px; margin:0 auto; padding:34px 20px 60px; display:grid; grid-template-columns:220px 1fr; gap:36px; align-items:start; }
+  .indice { position:sticky; top:84px; font-size:13.5px; }
+  .indice b { display:block; font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--cinza); margin-bottom:8px; }
+  .indice ol { margin:0; padding-left:18px; }
+  .indice li { margin:4px 0; }
+  .indice a { color:var(--texto-2); text-decoration:none; }
+  .indice a:hover { color:var(--verde); }
+  article { background:var(--card); border:1px solid var(--borda); border-radius:18px; padding:34px 38px; }
+  h1 { font-size:30px; line-height:1.2; margin:0 0 6px; letter-spacing:-.02em; }
+  .data { color:var(--cinza); font-size:14px; margin:0 0 22px; }
+  .resumo { background:var(--verde-claro); border-radius:14px; padding:16px 20px; margin:0 0 26px; font-size:15px; }
+  .resumo b { color:var(--verde); }
+  .resumo ul { margin:6px 0 0; padding-left:20px; }
+  h2 { font-size:19px; margin:34px 0 8px; scroll-margin-top:80px; }
+  h3 { font-size:16px; margin:20px 0 4px; }
+  p, li { color:var(--texto-2); font-size:15.5px; }
+  ul { padding-left:22px; }
+  table { width:100%; border-collapse:collapse; font-size:14.5px; margin:10px 0; }
+  th, td { text-align:left; padding:10px 12px; border-bottom:1px solid var(--borda); vertical-align:top; color:var(--texto-2); }
+  th { color:var(--texto); background:var(--fundo); font-weight:600; }
+  .aviso { border-left:4px solid #f59e0b; background:rgba(245,158,11,.08); padding:12px 16px; border-radius:8px; }
+  footer { text-align:center; color:var(--cinza); font-size:13px; padding:0 20px 40px; }
+  @media (max-width: 760px) {
+    main { grid-template-columns:1fr; gap:18px; padding-top:20px; }
+    .indice { position:static; background:var(--card); border:1px solid var(--borda); border-radius:14px; padding:14px 18px; }
+    article { padding:24px 20px; border-radius:14px; }
+    h1 { font-size:25px; }
+    table, thead, tbody, tr, th, td { display:block; } thead { display:none; }
+    td { border:0; padding:3px 0; } tr { border-bottom:1px solid var(--borda); padding:10px 0; }
+    td:first-child { font-weight:600; color:var(--texto); }
+  }
+  html[data-tema="escuro"] { --verde:#3dd68c; --verde-fundo:#198052; --verde-claro:rgba(47,179,122,.14); --texto:#e6edf3; --texto-2:#c3cdd7; --cinza:#94a3b8; --borda:#283340; --fundo:#0e1318; --card:#161d25; }
+  @media print { header, .indice, footer { display:none; } main { display:block; } article { border:0; } }
+
+  /* ---------- modo escuro: comum ---------- */
+  html[data-tema="escuro"] { color-scheme:dark; }
+  html.tema-trocando, html.tema-trocando *, html.tema-trocando *::before, html.tema-trocando *::after {
+    transition:background-color .35s ease, border-color .35s ease, color .35s ease, fill .35s ease, box-shadow .35s ease !important; }
+  .so-escuro { display:none !important; }
+  html[data-tema="escuro"] .so-claro { display:none !important; }
+  html[data-tema="escuro"] .so-escuro { display:revert !important; }
+  .btn-tema { width:36px; height:36px; flex:none; border-radius:50%; border:1px solid var(--borda, #e5e7eb); background:var(--card, #fff); color:var(--texto, #111827);
+    display:grid; place-items:center; cursor:pointer; padding:0; transition:transform .2s; }
+  .btn-tema:hover { transform:rotate(-12deg); }
+  .btn-tema svg { width:18px; height:18px; grid-area:1/1; transition:transform .45s cubic-bezier(.34,1.56,.64,1), opacity .3s; }
+  .btn-tema .sol { transform:rotate(-90deg) scale(.4); opacity:0; }
+  html[data-tema="escuro"] .btn-tema .sol { transform:none; opacity:1; color:#fbbf24; }
+  html[data-tema="escuro"] .btn-tema .lua { transform:rotate(90deg) scale(.4); opacity:0; }
+</style>
+</head>
+<body>
+<header><div class="barra">
+  <a href="/" aria-label="Lembra Aí"><img src="/marca/logo-horizontal.svg" alt="Lembra Aí" class="so-claro" style="height:32px;display:block"><img src="/marca/logo-horizontal-escuro.svg" alt="Lembra Aí" class="so-escuro" style="height:32px;display:block"></a>
+  <nav>
+    <a class="aba on" href="/termos">Termos</a>
+    <a class="aba " href="/privacidade">Privacidade</a>
+    <button type="button" class="btn-tema" data-trocar-tema aria-label="Alternar modo escuro" title="Modo claro/escuro">
+  <svg class="lua" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+  <svg class="sol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+</button>
+  </nav>
+</div></header>
+<main>
+<aside class="indice"><b>Nesta página</b><ol>
+  <li><a href="#aceite">Aceite</a></li><li><a href="#servico">O que é o Lembra Aí</a></li>
+  <li><a href="#cadastro">Cadastro e conta</a></li><li><a href="#whatsapp">Avisos pelo WhatsApp</a></li>
+  <li><a href="#limites">O que o serviço não faz</a></li><li><a href="#planos">Planos e pagamento</a></li>
+  <li><a href="#arrependimento">Cancelamento e arrependimento</a></li><li><a href="#uso">Uso permitido</a></li>
+  <li><a href="#responsabilidade">Responsabilidades</a></li><li><a href="#encerramento">Encerramento da conta</a></li>
+  <li><a href="#mudancas">Mudanças nos termos</a></li><li><a href="#lei">Lei e foro</a></li><li><a href="#contato">Contato</a></li>
+</ol></aside>
+<article>
+<h1>Termos de uso</h1>
+<p class="data">Versão {{VERSAO}} · em vigor desde {{ATUALIZADO}}</p>
+
+<div class="resumo"><b>Resumo rápido</b> (não substitui o texto completo):
+<ul>
+  <li>O Lembra Aí manda lembretes das suas contas pelo WhatsApp. Ele <b>não paga</b> nenhuma conta por você.</li>
+  <li>A entrega depende do WhatsApp e da internet, então não dá pra garantir que todo aviso chegue na hora.</li>
+  <li>O plano Grátis não tem custo. O Premium é pago e você pode desistir em até 7 dias depois da compra, com reembolso.</li>
+  <li>Você pode excluir sua conta quando quiser, direto no site.</li>
+</ul></div>
+
+<h2 id="aceite">1. Aceite</h2>
+<p>Estes termos valem pro uso do site e dos avisos do Lembra Aí, oferecidos por <b>{{RESPONSAVEL}}</b>{{DOCUMENTO}}, com sede em {{CIDADE}}. Ao criar sua conta e marcar que leu e aceita, você concorda com estes Termos e com a <a href="/privacidade">Política de privacidade</a>. Se não concordar, não use o serviço.</p>
+
+<h2 id="servico">2. O que é o Lembra Aí</h2>
+<p>É uma ferramenta de organização: você cadastra contas (luz, água, aluguel, fatura do cartão etc.), escolhe quando quer ser avisado e recebe a mensagem no seu WhatsApp. Quando pagar, pode responder "paguei" pra parar os avisos daquele vencimento.</p>
+
+<h2 id="cadastro">3. Cadastro e conta</h2>
+<ul>
+  <li>Você precisa ter <b>18 anos ou mais</b> pra criar uma conta.</li>
+  <li>As informações do cadastro precisam ser verdadeiras, e o número de WhatsApp precisa ser <b>seu</b> ou de alguém que autorizou receber as mensagens. A confirmação por código serve pra isso.</li>
+  <li>Sua senha é pessoal. Não compartilhe com ninguém. Se suspeitar que alguém entrou na sua conta, troque a senha e fale com a gente.</li>
+  <li>Cada número de WhatsApp só pode estar ligado a uma conta.</li>
+</ul>
+
+<h2 id="whatsapp">4. Avisos pelo WhatsApp</h2>
+<ul>
+  <li>Os avisos saem do número oficial do Lembra Aí, no dia e horário que você escolheu (horário de Brasília).</li>
+  <li>Você pode responder <b>paguei</b>, <b>desfazer</b>, <b>parar</b> (pausa todos os avisos) ou <b>ajuda</b>.</li>
+  <li>Se o sistema ficar fora do ar, os avisos atrasados são enviados quando ele voltar, até 12 horas depois do horário marcado. Depois disso, aquele aviso é descartado pra não chegar fora de hora.</li>
+  <li>O WhatsApp é um serviço da Meta, que não faz parte do Lembra Aí. Mudanças, bloqueios ou falhas do WhatsApp podem atrasar ou impedir a entrega.</li>
+</ul>
+
+<h2 id="limites">5. O que o serviço não faz</h2>
+<div class="aviso"><p style="margin:0">O Lembra Aí <b>só lembra</b>. Ele não paga contas, não tem acesso à sua conta bancária, não emite boletos e não é instituição financeira. <b>Pagar em dia continua sendo responsabilidade sua</b>, com ou sem o aviso.</p></div>
+<p>Por segurança, <b>nunca coloque número de cartão, senha ou dados bancários</b> nos lembretes. O sistema recusa números de cartão se identificar um. A gente nunca vai pedir esses dados, nem pelo site, nem pelo WhatsApp.</p>
+
+<h2 id="planos">6. Planos e pagamento</h2>
+<table>
+  <thead><tr><th>Plano</th><th>O que inclui</th></tr></thead>
+  <tbody>
+    <tr><td>Grátis</td><td>Até {{LIMITE}} lembretes, 1 aviso por lembrete e a mensagem padrão. Sem custo e sem prazo.</td></tr>
+    <tr><td>Premium</td><td>Lembretes ilimitados, vários avisos por conta, mensagem personalizada, sugestões com IA, ícone e cor. Mensal ({{PRECO_MENSAL}}) ou anual ({{PRECO_ANUAL}}).</td></tr>
+  </tbody>
+</table>
+<ul>
+  <li>O pagamento do Premium é feito numa plataforma de pagamentos parceira (como o Asaas), em ambiente dela. <b>O Lembra Aí não recebe nem guarda dados do seu cartão</b>.</li>
+  <li>Os preços podem mudar. Quem já pagou mantém o valor até o fim do período contratado, e qualquer reajuste é avisado antes da renovação.</li>
+  <li>Se o Premium vencer e não for renovado, a conta volta pro Grátis. Nada é apagado: os lembretes acima do limite só ficam pausados até você renovar ou escolher quais manter.</li>
+</ul>
+
+<h2 id="arrependimento">7. Cancelamento e direito de arrependimento</h2>
+<ul>
+  <li>Você pode desistir da compra do Premium em até <b>7 dias</b> depois do pagamento e receber o valor de volta, como garante o art. 49 do Código de Defesa do Consumidor. É só pedir pelo contato no fim desta página.</li>
+  <li>Depois desse prazo, você pode cancelar a renovação quando quiser. O Premium continua valendo até o fim do período já pago.</li>
+</ul>
+
+<h2 id="uso">8. Uso permitido</h2>
+<p>Não é permitido:</p>
+<ul>
+  <li>cadastrar o número de outra pessoa sem autorização dela, ou usar o serviço pra mandar mensagens indesejadas;</li>
+  <li>tentar invadir, sobrecarregar, copiar ou descobrir falhas do sistema sem autorização;</li>
+  <li>criar contas em massa ou automatizar o uso do site;</li>
+  <li>usar o serviço pra qualquer coisa ilegal.</li>
+</ul>
+<p>Se isso acontecer, a conta pode ser suspensa ou encerrada.</p>
+
+<h2 id="responsabilidade">9. Responsabilidades</h2>
+<p>A gente se esforça pra manter o serviço funcionando e seus dados protegidos (veja a <a href="/privacidade">Política de privacidade</a>). Mesmo assim, como o serviço depende de terceiros (internet, servidores, WhatsApp), não dá pra garantir funcionamento sem interrupções. O Lembra Aí não responde por multas, juros ou cortes de serviço de contas não pagas, porque o pagamento continua sendo seu. Nada aqui limita os direitos que o Código de Defesa do Consumidor te garante.</p>
+
+<h2 id="encerramento">10. Encerramento da conta</h2>
+<p>Você pode excluir sua conta quando quiser, pelo menu da conta no site (<b>Excluir minha conta</b>). Os seus dados são apagados como explicado na Política de privacidade. A gente também pode encerrar contas que descumprirem estes termos, avisando antes sempre que possível.</p>
+
+<h2 id="mudancas">11. Mudanças nos termos</h2>
+<p>Se estes termos mudarem de forma importante, você vai ser avisado no site antes da mudança valer. Continuar usando depois disso significa que você concorda com a versão nova. A data e a versão ficam no topo desta página.</p>
+
+<h2 id="lei">12. Lei e foro</h2>
+<p>Valem as leis do Brasil. Qualquer discussão pode ser levada ao foro da sua cidade, como prevê o Código de Defesa do Consumidor.</p>
+
+<h2 id="contato">13. Contato</h2>
+<p>Dúvidas, pedidos de reembolso ou reclamações: <a href="mailto:{{CONTATO}}">{{CONTATO}}</a>.</p>
+</article>
+</main>
+<footer>© {{ANO}} Lembra Aí · {{CIDADE}}</footer>
+
+<script>
+/* botão de tema + acompanha o aparelho enquanto a pessoa não escolher */
+(function () {
+  var raiz = document.documentElement;
+  function corBarra() { var m = document.querySelector('meta[name="theme-color"]'); if (m) m.content = raiz.dataset.tema === 'escuro' ? '#0e1318' : '#0FA055'; }
+  function aplicar(t, salvar) {
+    raiz.classList.add('tema-trocando');
+    raiz.dataset.tema = t; corBarra();
+    if (salvar) { try { localStorage.setItem('lembraai:tema', t); } catch (e) {} }
+    clearTimeout(aplicar.t); aplicar.t = setTimeout(function () { raiz.classList.remove('tema-trocando'); }, 400);
+  }
+  document.querySelectorAll('[data-trocar-tema]').forEach(function (b) {
+    b.addEventListener('click', function () { aplicar(raiz.dataset.tema === 'escuro' ? 'claro' : 'escuro', true); });
+  });
+  var mq = matchMedia('(prefers-color-scheme: dark)');
+  var ouvir = function (e) { var salvo = null; try { salvo = localStorage.getItem('lembraai:tema'); } catch (x) {} if (!salvo) aplicar(e.matches ? 'escuro' : 'claro', false); };
+  if (mq.addEventListener) mq.addEventListener('change', ouvir);
+  corBarra();
+})();
+</script>
+</body>
+</html>

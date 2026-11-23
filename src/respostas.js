@@ -7,6 +7,7 @@
 // e com limite por hora no total (responder estranhos demais aumenta o risco de o chip ser marcado como spam).
 import { supabase } from './supabase.js';
 import { enviarTexto } from './whatsapp.js';
+import { abrirConta, abrirLembrete, indice } from './cripto.js';
 import {
   TIPOS, hojeBR, proximoVencimento, pagamentosDe, chavePago, marcarPago, desfazerPago,
 } from './lembretes.js';
@@ -53,8 +54,8 @@ function podeResponder(contaId) {
 async function contaPendentePeloNumero(numero) {
   if (!numero) return null;
   const { data } = await supabase
-    .from('contas').select('id, nome').eq('jid_pendente', `${numero}@s.whatsapp.net`).limit(1).maybeSingle();
-  return data || null;
+    .from('contas').select('id, nome').eq('jid_pendente_indice', indice('jid', `${numero}@s.whatsapp.net`)).limit(1).maybeSingle();
+  return abrirConta(data) || null;
 }
 
 function textoConvite() {
@@ -74,8 +75,8 @@ function textoConvite() {
 
 // Responde quem não tem conta, no máximo 1 vez por semana por número
 async function convidarDesconhecido({ jid, numero }) {
-  const chave = numero || jid;
-  if (!chave) return;
+  if (!(numero || jid)) return;
+  const chave = indice('contato', numero || jid); // guarda só o índice, não o número de quem escreveu
   const agora = Date.now();
   convitesRecentes = convitesRecentes.filter((t) => t > agora - 3600_000);
   if (convitesRecentes.length >= CONVITES_POR_HORA) return;
@@ -103,8 +104,8 @@ async function contaPeloNumero(numero) {
   if (!numero) return null;
   const { data } = await supabase
     .from('contas').select('id, nome, telefone_jid, telefone_verificado_em')
-    .eq('telefone_jid', `${numero}@s.whatsapp.net`).not('telefone_verificado_em', 'is', null).maybeSingle();
-  return data || null;
+    .eq('telefone_jid_indice', indice('jid', `${numero}@s.whatsapp.net`)).not('telefone_verificado_em', 'is', null).maybeSingle();
+  return abrirConta(data) || null;
 }
 
 // Contas que podem estar sendo pagas: avisadas nos últimos 20 dias (vencimento até 7 dias atrás)
@@ -118,7 +119,7 @@ async function contasEmAberto(contaId) {
       .gte('enviado_em', new Date(Date.now() - 20 * 86_400_000).toISOString())
       .gte('vencimento', somaDias(hoje, -7)),
   ]);
-  const porId = new Map((lembretes || []).map((l) => [l.id, l]));
+  const porId = new Map((lembretes || []).map(abrirLembrete).map((l) => [l.id, l]));
   const pagos = await pagamentosDe([...porId.keys()]);
   const vistos = new Map();
   const adicionar = (lembrete, vencimento, msgId = null) => {
@@ -196,7 +197,7 @@ export async function tratarMensagem({ jid, numero, texto, citadaId }) {
     const avisoCitado = citadaId ? await avisoPeloId(conta.id, citadaId) : null;
     const respondida = avisoCitado && opcoes.find((o) => o.lembrete.id === avisoCitado.lembrete_id && o.vencimento === avisoCitado.vencimento);
     if (avisoCitado && !respondida) {
-      const { data: l } = await supabase.from('lembretes').select('titulo').eq('id', avisoCitado.lembrete_id).maybeSingle();
+      const l = abrirLembrete((await supabase.from('lembretes').select('id, titulo').eq('id', avisoCitado.lembrete_id).maybeSingle()).data);
       opcoes = null;
       resposta = `Essa já estava anotada como paga: *${l?.titulo || 'essa conta'}* (vencimento ${dataBR(avisoCitado.vencimento)}). ✅`;
     } else if (respondida) opcoes = [respondida];
@@ -222,7 +223,7 @@ export async function tratarMensagem({ jid, numero, texto, citadaId }) {
     if (!ultimo) {
       resposta = 'Não achei nenhum "paguei" nas últimas 24 horas pra desfazer.';
     } else {
-      const { data: lembrete } = await supabase.from('lembretes').select('*').eq('id', ultimo.lembrete_id).single();
+      const lembrete = abrirLembrete((await supabase.from('lembretes').select('*').eq('id', ultimo.lembrete_id).single()).data);
       await desfazerPago({ lembrete, vencimento: ultimo.vencimento });
       resposta = `↩️ Pronto, desfiz. *${lembrete.titulo}* (vencimento ${dataBR(ultimo.vencimento)}) voltou a ficar em aberto, e os avisos que faltam vão sair normalmente.`;
     }

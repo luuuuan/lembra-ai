@@ -1,10 +1,15 @@
 import './silenciar-logs.js'; // precisa ser o primeiro import
 import express from 'express';
 import QRCode from 'qrcode';
-import { createHash, randomInt } from 'node:crypto';
+import { createHash, randomInt, randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { supabase } from './supabase.js';
+import {
+  abrirConta, fecharConta, abrirLembrete, fecharLembrete, decifrarTextoEnvio, indice, configurarChaves,
+} from './cripto.js';
+import { migrarCriptografia } from './migrar-cripto.js';
+import { paginaLegal } from './legal.js';
 import * as whatsapp from './whatsapp.js';
 import { sugerirMensagens, iaConfigurada, TONS } from './ia.js';
 import { LIMITE_GRATIS, PRECOS, LINK_PAGAMENTO, situacaoDasContas, ehPremium as ehPremiumAgora } from './planos.js';
@@ -21,6 +26,14 @@ const PORT = process.env.PORT || 3000;
 const raiz = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const pagina = (nome) => path.join(raiz, 'public', nome);
 
+// Sem a chave da criptografia o servidor não sobe (melhor parar do que gravar dado pessoal aberto)
+try {
+  console.log(`Criptografia dos dados ligada (chave ${configurarChaves()}).`);
+} catch (e) {
+  console.error(`\n*** ${e.message} ***\n`);
+  process.exit(1);
+}
+
 const app = express();
 app.set('trust proxy', 1);
 app.use(express.json());
@@ -35,6 +48,10 @@ app.get('/favicon.ico', marca('favicon.ico'));
 app.get('/apple-touch-icon.png', marca('apple-touch-icon.png'));
 app.get('/apple-touch-icon-precomposed.png', marca('apple-touch-icon.png'));
 app.get('/site.webmanifest', (req, res) => res.type('application/manifest+json').sendFile(path.join(raiz, 'public', 'marca', 'site.webmanifest')));
+
+// Termos de uso e Política de privacidade (públicas)
+app.get(['/termos', '/termos-de-uso'], (_req, res) => res.type('html').send(paginaLegal('termos.html')));
+app.get(['/privacidade', '/politica-de-privacidade'], (_req, res) => res.type('html').send(paginaLegal('privacidade.html')));
 
 app.use(carregarSessao);
 
@@ -78,14 +95,13 @@ app.post('/api/telefone/codigo', async (req, res) => {
     const jid = await whatsapp.resolverNumero(telefone).catch((e) => { throw Object.assign(e, { status: 400 }); });
 
     const { data: dono } = await supabase
-      .from('contas').select('id').eq('telefone_jid', jid).not('telefone_verificado_em', 'is', null).neq('id', conta.id)
+      .from('contas').select('id').eq('telefone_jid_indice', indice('jid', jid)).not('telefone_verificado_em', 'is', null).neq('id', conta.id)
       .maybeSingle();
     if (dono) return res.status(409).json({ erro: 'Esse número já está em outra conta.' });
 
     const codigo = String(randomInt(0, 10_000)).padStart(4, '0'); // 4 dígitos (vale 10 min, até 5 tentativas)
     const { error } = await supabase.from('contas').update({
-      telefone_pendente: telefone,
-      jid_pendente: jid,
+      ...fecharConta(conta.id, { telefone_pendente: telefone, jid_pendente: jid }),
       codigo_hash: hashCodigo(conta.id, codigo),
       codigo_expira: new Date(Date.now() + 10 * 60_000).toISOString(),
       codigo_tentativas: 0,
@@ -104,11 +120,12 @@ app.post('/api/telefone/confirmar', async (req, res) => {
   try {
     const codigo = String(req.body?.codigo || '').replace(/\D/g, '');
     if (codigo.length !== 4) return res.status(400).json({ erro: 'O código tem 4 números' });
-    const { data: conta, error } = await supabase
+    const { data: linha, error } = await supabase
       .from('contas')
       .select('id, telefone_pendente, jid_pendente, codigo_hash, codigo_expira, codigo_tentativas')
       .eq('id', req.usuario.id).single();
     if (error) throw error;
+    const conta = abrirConta(linha);
 
     if (!conta.codigo_hash || !conta.codigo_expira || new Date(conta.codigo_expira) < new Date()) {
       return res.status(400).json({ erro: 'Código expirado. Peça um novo.' });
@@ -121,10 +138,9 @@ app.post('/api/telefone/confirmar', async (req, res) => {
     }
 
     const { error: erroUpd } = await supabase.from('contas').update({
-      telefone: conta.telefone_pendente,
-      telefone_jid: conta.jid_pendente,
+      ...fecharConta(conta.id, { telefone: conta.telefone_pendente, telefone_jid: conta.jid_pendente, telefone_pendente: null, jid_pendente: null }),
       telefone_verificado_em: new Date().toISOString(),
-      telefone_pendente: null, jid_pendente: null, codigo_hash: null, codigo_expira: null, codigo_tentativas: 0,
+      codigo_hash: null, codigo_expira: null, codigo_tentativas: 0,
     }).eq('id', conta.id);
     if (erroUpd) throw erroUpd;
     esquecerUsuario(conta.id);
@@ -140,10 +156,27 @@ const ICONES = ['luz', 'agua', 'internet', 'aluguel', 'cartao', 'boleto', 'gas',
   'academia', 'streaming', 'mercado', 'condominio', 'seguro', 'imposto', 'pet', 'presente', 'investimento', 'outro', 'sino'];
 const CORES = ['amarelo', 'azul', 'roxo', 'laranja', 'rosa', 'ciano', 'verde', 'vermelho', 'cinza'];
 
+// Número de cartão (13 a 19 dígitos que passam no teste de Luhn), mesmo com espaços ou traços
+function temNumeroDeCartao(texto) {
+  for (const m of String(texto || '').matchAll(/\d(?:[ .-]?\d){12,18}/g)) {
+    const d = m[0].replace(/\D/g, '');
+    let soma = 0;
+    for (let i = 0; i < d.length; i++) {
+      let n = Number(d[d.length - 1 - i]);
+      if (i % 2 === 1) { n *= 2; if (n > 9) n -= 9; }
+      soma += n;
+    }
+    if (soma % 10 === 0 && !/^(\d)\1+$/.test(d)) return true;
+  }
+  return false;
+}
+const AVISO_CARTAO = 'Por segurança, não coloque o número do cartão aqui. Use só um apelido, tipo "Fatura Nubank".';
+
 function validarLembrete(b) {
   const tipo = TIPOS[b.tipo] ? b.tipo : 'outro';
   const titulo = String(b.titulo || '').trim() || TIPOS[tipo].titulo;
   if (titulo.length > 60) throw new Error('Nome muito longo (máx. 60 letras)');
+  if (temNumeroDeCartao(titulo)) throw new Error(AVISO_CARTAO);
 
   let valor = null;
   if (b.valor !== undefined && b.valor !== null && String(b.valor).trim() !== '') {
@@ -172,6 +205,7 @@ function validarLembrete(b) {
 
   const mensagem = String(b.mensagem || '').trim() || null;
   if (mensagem && mensagem.length > 600) throw new Error('Mensagem muito longa (máx. 600 caracteres)');
+  if (temNumeroDeCartao(mensagem)) throw new Error(AVISO_CARTAO);
 
   const icone = ICONES.includes(b.icone) ? b.icone : null; // vazio = segue o tipo
   const cor = CORES.includes(b.cor) ? b.cor : null;
@@ -214,13 +248,15 @@ async function enriquecer(lembretes) {
   });
 }
 
-const doUsuario = (req) => supabase.from('lembretes').select('*').eq('id', req.params.id).eq('conta_id', req.usuario.id);
+const lembreteDoUsuario = async (req) => abrirLembrete(
+  (await supabase.from('lembretes').select('*').eq('id', req.params.id).eq('conta_id', req.usuario.id).maybeSingle()).data,
+);
 
 app.get('/api/lembretes', async (req, res) => {
   const { data, error } = await supabase
     .from('lembretes').select('*').eq('conta_id', req.usuario.id).order('criado_em', { ascending: true });
   if (error) return erroPadrao(res, error);
-  res.json(await enriquecer(data || []));
+  res.json(await enriquecer((data || []).map(abrirLembrete)));
 });
 
 app.post('/api/lembretes', async (req, res) => {
@@ -236,9 +272,11 @@ app.post('/api/lembretes', async (req, res) => {
     }
     const bloqueio = bloqueioDoPlano(req.usuario, campos);
     if (bloqueio) return pedirPremium(res, bloqueio);
-    const { data, error } = await supabase
-      .from('lembretes').insert({ ...campos, conta_id: req.usuario.id }).select().single();
+    const id = randomUUID(); // o id entra na cifra, por isso é gerado aqui
+    const { data: linha, error } = await supabase
+      .from('lembretes').insert({ id, ...fecharLembrete(id, campos), conta_id: req.usuario.id }).select().single();
     if (error) throw error;
+    const data = abrirLembrete(linha);
     await regenerar(data);
     res.status(201).json((await enriquecer([data]))[0]);
   } catch (e) {
@@ -248,16 +286,17 @@ app.post('/api/lembretes', async (req, res) => {
 
 app.put('/api/lembretes/:id', async (req, res) => {
   try {
-    const { data: atual } = await doUsuario(req).maybeSingle();
+    const atual = await lembreteDoUsuario(req);
     if (!atual) return res.status(404).json({ erro: 'Lembrete não encontrado' });
     let campos;
     try { campos = validarLembrete(req.body || {}); } catch (e) { return erroPadrao(res, e, 400); }
     const bloqueio = bloqueioDoPlano(req.usuario, campos);
     if (bloqueio) return pedirPremium(res, bloqueio);
-    const { data, error } = await supabase
-      .from('lembretes').update({ ...campos, atualizado_em: new Date().toISOString() })
+    const { data: linha, error } = await supabase
+      .from('lembretes').update({ ...fecharLembrete(atual.id, campos), atualizado_em: new Date().toISOString() })
       .eq('id', atual.id).select().single();
     if (error) throw error;
+    const data = abrirLembrete(linha);
     await regenerar(data);
     res.json((await enriquecer([data]))[0]);
   } catch (e) {
@@ -267,12 +306,13 @@ app.put('/api/lembretes/:id', async (req, res) => {
 
 app.post('/api/lembretes/:id/ativo', async (req, res) => {
   try {
-    const { data: atual } = await doUsuario(req).maybeSingle();
+    const atual = await lembreteDoUsuario(req);
     if (!atual) return res.status(404).json({ erro: 'Lembrete não encontrado' });
-    const { data, error } = await supabase
+    const { data: linha, error } = await supabase
       .from('lembretes').update({ ativo: Boolean(req.body?.ativo), atualizado_em: new Date().toISOString() })
       .eq('id', atual.id).select().single();
     if (error) throw error;
+    const data = abrirLembrete(linha);
     await regenerar(data); // pausado: apaga os avisos futuros; ativado: recria
     res.json((await enriquecer([data]))[0]);
   } catch (e) {
@@ -289,7 +329,7 @@ app.delete('/api/lembretes/:id', async (req, res) => {
 // Marcar como paga pelo site (o mesmo que responder "paguei" no WhatsApp)
 app.post('/api/lembretes/:id/pago', async (req, res) => {
   try {
-    const { data: lembrete } = await doUsuario(req).maybeSingle();
+    const lembrete = await lembreteDoUsuario(req);
     if (!lembrete) return res.status(404).json({ erro: 'Lembrete não encontrado' });
     const pagos = await pagamentosDe([lembrete.id]);
     const vencimento = req.body?.vencimento || proximoVencimento(lembrete, new Date(), pagos);
@@ -303,7 +343,7 @@ app.post('/api/lembretes/:id/pago', async (req, res) => {
 
 app.delete('/api/lembretes/:id/pago', async (req, res) => {
   try {
-    const { data: lembrete } = await doUsuario(req).maybeSingle();
+    const lembrete = await lembreteDoUsuario(req);
     if (!lembrete) return res.status(404).json({ erro: 'Lembrete não encontrado' });
     const vencimento = String(req.body?.vencimento || '');
     if (!/^\d{4}-\d{2}-\d{2}$/.test(vencimento)) return res.status(400).json({ erro: 'Vencimento inválido' });
@@ -344,11 +384,11 @@ app.get('/api/ia', (_req, res) => res.json({ configurada: iaConfigurada(), tons:
 app.post('/api/lembretes/:id/testar', async (req, res) => {
   try {
     if (!whatsapp.online()) return res.status(503).json({ erro: 'O sistema está fora do ar agora.' });
-    const { data: encontrado } = await doUsuario(req).maybeSingle();
+    const encontrado = await lembreteDoUsuario(req);
     if (!encontrado) return res.status(404).json({ erro: 'Lembrete não encontrado' });
     const lembrete = req.usuario.premium ? encontrado : { ...encontrado, mensagem: null }; // grátis: mensagem padrão
-    const { data: conta } = await supabase
-      .from('contas').select('nome, telefone_jid, telefone_verificado_em').eq('id', req.usuario.id).single();
+    const conta = abrirConta((await supabase
+      .from('contas').select('id, nome, telefone_jid, telefone_verificado_em').eq('id', req.usuario.id).single()).data);
     if (!conta.telefone_verificado_em) return res.status(400).json({ erro: 'Confirme seu número antes' });
     const hoje = hojeBR().str;
     const vencimento = proximoVencimento(lembrete) || hoje;
@@ -368,7 +408,46 @@ app.get('/api/envios', async (req, res) => {
     .eq('conta_id', req.usuario.id).neq('status', 'pendente')
     .order('enviar_em', { ascending: false }).limit(30);
   if (error) return erroPadrao(res, error);
-  res.json(data);
+  res.json((data || []).map((e) => ({ ...e, texto: decifrarTextoEnvio(e.id, e.texto) })));
+});
+
+// =============== MEUS DADOS (LGPD art. 18: acesso e portabilidade) ===============
+app.get('/api/conta/dados', async (req, res) => {
+  try {
+    const id = req.usuario.id;
+    const conta = abrirConta((await supabase.from('contas')
+      .select('id, nome, email, telefone, telefone_verificado_em, plano, premium_ate, criado_em, termos_versao, termos_aceitos_em')
+      .eq('id', id).single()).data);
+    const lembretes = ((await supabase.from('lembretes').select('*').eq('conta_id', id).order('criado_em')).data || []).map(abrirLembrete);
+    const nomeDo = new Map(lembretes.map((l) => [l.id, l.titulo]));
+    const pagamentos = (await supabase.from('pagamentos').select('lembrete_id, vencimento, origem, pago_em').eq('conta_id', id).order('pago_em')).data || [];
+    const envios = (await supabase.from('envios').select('id, lembrete_id, vencimento, dias_antes, enviar_em, status, texto, enviado_em')
+      .eq('conta_id', id).order('enviar_em').limit(10000)).data || [];
+    const arquivo = {
+      sobre: 'Cópia dos seus dados no Lembra Aí (LGPD, art. 18). Gerada a seu pedido.',
+      gerado_em: new Date().toISOString(),
+      conta: {
+        nome: conta.nome, email: conta.email,
+        whatsapp: conta.telefone_verificado_em ? conta.telefone : null, whatsapp_confirmado_em: conta.telefone_verificado_em,
+        plano: ehPremiumAgora(conta) ? 'premium' : 'gratis', premium_ate: conta.premium_ate,
+        criada_em: conta.criado_em, termos_versao: conta.termos_versao, termos_aceitos_em: conta.termos_aceitos_em,
+      },
+      lembretes: lembretes.map((l) => ({
+        nome: l.titulo, tipo: l.tipo, valor: l.valor, frequencia: l.frequencia, dia: l.dia, data: l.data,
+        avisos_dias_antes: l.avisos, horario: l.horario, mensagem: l.mensagem, icone: l.icone, cor: l.cor, ativo: l.ativo, criado_em: l.criado_em,
+      })),
+      pagamentos_marcados: pagamentos.map((p) => ({ lembrete: nomeDo.get(p.lembrete_id) || null, vencimento: p.vencimento, por: p.origem, em: p.pago_em })),
+      avisos: envios.map((e) => ({
+        lembrete: nomeDo.get(e.lembrete_id) || null, vencimento: e.vencimento, dias_antes: e.dias_antes,
+        previsto_para: e.enviar_em, status: e.status, enviado_em: e.enviado_em, texto: decifrarTextoEnvio(e.id, e.texto),
+      })),
+    };
+    res.set('Content-Disposition', `attachment; filename="lembra-ai-meus-dados-${new Date().toISOString().slice(0, 10)}.json"`);
+    res.set('Cache-Control', 'no-store');
+    res.type('application/json').send(JSON.stringify(arquivo, null, 2));
+  } catch (e) {
+    erroPadrao(res, e);
+  }
 });
 
 // =============== ADMIN: NÚMERO DO SISTEMA ===============
@@ -395,10 +474,12 @@ app.post('/api/admin/whatsapp/desconectar', exigirAdmin, async (_req, res) => {
 // Admin: ver e mudar o plano de uma conta pelo e-mail (até o pagamento automático existir)
 app.get('/api/admin/conta', exigirAdmin, async (req, res) => {
   const email = String(req.query.email || '').trim().toLowerCase();
-  const { data } = await supabase.from('contas').select('id, nome, email, plano, premium_ate, telefone_verificado_em, criado_em').eq('email', email).maybeSingle();
+  const data = abrirConta((await supabase.from('contas').select('id, nome, email, plano, premium_ate, telefone_verificado_em, criado_em')
+    .eq('email_indice', indice('email', email)).maybeSingle()).data);
   if (!data) return res.status(404).json({ erro: 'Nenhuma conta com esse e-mail' });
   const { count } = await supabase.from('lembretes').select('id', { count: 'exact', head: true }).eq('conta_id', data.id);
-  res.json({ ...data, lembretes: count ?? 0, premium: ehPremiumAgora(data) });
+  const { id, nome, email: mail, plano, premium_ate, telefone_verificado_em, criado_em } = data; // só o necessário
+  res.json({ id, nome, email: mail, plano, premium_ate, telefone_verificado_em, criado_em, lembretes: count ?? 0, premium: ehPremiumAgora(data) });
 });
 
 app.post('/api/admin/plano', exigirAdmin, async (req, res) => {
@@ -406,7 +487,7 @@ app.post('/api/admin/plano', exigirAdmin, async (req, res) => {
     const email = String(req.body?.email || '').trim().toLowerCase();
     const plano = req.body?.plano === 'premium' ? 'premium' : 'gratis';
     const dias = Number(req.body?.dias) || null; // vazio = sem prazo
-    const { data: conta } = await supabase.from('contas').select('id, plano, premium_ate').eq('email', email).maybeSingle();
+    const { data: conta } = await supabase.from('contas').select('id, plano, premium_ate').eq('email_indice', indice('email', email)).maybeSingle();
     if (!conta) return res.status(404).json({ erro: 'Nenhuma conta com esse e-mail' });
 
     let premium_ate = null;
@@ -453,6 +534,14 @@ app.use((err, _req, res, _next) => {
 });
 
 // =============== SUBIDA ===============
+// Antes de atender: cifra o que ainda estiver aberto no banco (ou regrava com a chave nova)
+try {
+  await migrarCriptografia();
+} catch (e) {
+  console.error('Erro ao cifrar os dados existentes:', e.message);
+  process.exit(1);
+}
+
 app.listen(PORT, async () => {
   console.log(`Servidor na porta ${PORT}`);
   await destravar().catch(() => {});

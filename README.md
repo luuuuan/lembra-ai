@@ -56,6 +56,14 @@ Quem abre o site sem estar logado vê a página de apresentação (`public/lp.ht
 
 ## Segurança e detalhes de uso
 
+- **Dados cifrados:** nome, e-mail e telefone (de todo mundo, admin incluído), o nome, valor e mensagem de cada lembrete, o texto dos avisos enviados e a sessão do WhatsApp do sistema ficam cifrados no banco com **AES-256-GCM**. Quem abrir o Supabase só vê `c1.xxxx`. A chave fica só no servidor (`CHAVE_DADOS`).
+  - Cada valor fica amarrado à sua tabela, coluna e linha: copiar um dado cifrado de um lugar pro outro não funciona, e qualquer alteração no dado cifrado é detectada.
+  - Pra achar a conta no login (e-mail) e quando a pessoa responde no WhatsApp (número), o banco guarda um **índice cego** (HMAC-SHA256 com outra chave derivada): dá pra buscar, mas não dá pra voltar ao dado.
+  - Números de quem escreveu sem ter conta também viram índice: o número não fica guardado.
+  - Ao subir, o servidor cifra sozinho o que ainda estiver aberto no banco (dados de antes da criptografia).
+- **Senhas:** Argon2id (19 MiB de memória, 2 passadas, recomendação da OWASP). As senhas antigas (scrypt) passam pro Argon2id no próximo login da pessoa, sem ela perceber.
+- **Trocar a chave:** gere uma nova (`npm run gerar-chave`), coloque a nova em `CHAVE_DADOS` e a antiga em `CHAVE_DADOS_ANTIGAS`. Ao subir, o servidor regrava tudo com a nova. Depois de ver no log que terminou, pode apagar a antiga.
+- **Perdeu a chave = perdeu os dados.** Guarde uma cópia da `CHAVE_DADOS` num gerenciador de senhas. Sem ela, nem você consegue ler os dados cifrados.
 - **Login:** 5 senhas erradas na mesma conta travam o login dela por 15 minutos. 20 erros vindos do mesmo IP (tentando vários e-mails) também travam por 15 minutos. Cada erro ainda demora meio segundo a mais pra responder, o que deixa o chute de senha bem lento.
 - **Cadastro:** no máximo 5 contas novas por hora vindas do mesmo IP.
 - **Ícone e cor:** cada lembrete pode ter um ícone e uma cor próprios (são 23 ícones e 9 cores). Se a pessoa não escolher, vale o padrão do tipo.
@@ -95,6 +103,10 @@ As 750h grátis por mês são **por workspace**, e um serviço ligado 24h gasta 
 |---|---|
 | `SUPABASE_URL` | URL do projeto |
 | `SUPABASE_SERVICE_ROLE_KEY` | secret key |
+| `CHAVE_DADOS` | chave da criptografia: rode `npm run gerar-chave` no seu computador e cole o resultado (guarde uma cópia!) |
+| `RESPONSAVEL_NOME` | seu nome completo ou a razão social (aparece nos Termos e na Privacidade) |
+| `CONTATO_EMAIL` | e-mail de contato pra dúvidas, reembolso e pedidos de privacidade |
+| `RESPONSAVEL_DOCUMENTO` | opcional, ex.: `CNPJ 00.000.000/0001-00` |
 | `ADMIN_EMAIL` | o seu e-mail (o mesmo que vai usar pra criar sua conta) |
 | `TZ` | `America/Sao_Paulo` |
 | `GEMINI_API_KEY` | chave do Gemini (opcional; veja a seção 6) |
@@ -129,4 +141,5 @@ Como funciona:
 - **Chip:** use um chip só pro sistema, nunca o seu número principal. O Baileys é **não oficial**, e um número mandando mensagem pra muita gente chama mais atenção do WhatsApp do que o uso pessoal.
 - **Spam:** peça pros usuários **salvarem o número do sistema** nos contatos. A tela de confirmação já mostra o número e dá essa dica. Contato salvo diminui bastante a chance de o WhatsApp tratar como spam.
 - **Sistema fora do ar:** os avisos esperam e saem quando ele voltar. Se atrasarem mais de 12h, são descartados (ajustável em `MAX_ATRASO_MIN`) e aparecem como "Não enviado" no histórico da pessoa.
-- **LGPD:** se abrir pra público, o sistema guarda e-mail, telefone e as contas das pessoas. Vale ter uma política de privacidade simples.
+- **LGPD:** o site tem **Termos de uso** (`/termos`) e **Política de privacidade** (`/privacidade`). O cadastro exige marcar que aceita (fica guardado a versão e a data do aceite). No menu da conta, a pessoa pode **baixar os dados** dela (JSON) e **excluir a conta** (pede a senha e apaga tudo na hora). Preencha `RESPONSAVEL_NOME`, `CONTATO_EMAIL` e, se tiver, `RESPONSAVEL_DOCUMENTO` no Render. Os textos foram escritos com base na LGPD e no CDC, mas vale uma revisão de um advogado antes de vender o Premium em escala.
+- **Cartão:** o sistema não recebe nem guarda dados de cartão (o pagamento do Premium acontece na plataforma de pagamento). Se alguém tentar colocar um número de cartão no nome ou na mensagem de um lembrete, o servidor recusa.
