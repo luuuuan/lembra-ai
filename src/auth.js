@@ -3,6 +3,7 @@
 import { scrypt as scryptCb, randomBytes, timingSafeEqual, createHmac, createHash } from 'node:crypto';
 import { promisify } from 'node:util';
 import { supabase } from './supabase.js';
+import { criarLimite, recusar } from './limites.js';
 
 const scrypt = promisify(scryptCb);
 const COOKIE = 'lembretes_sessao';
@@ -67,17 +68,11 @@ function gravarCookie(req, res, valor, maxAgeMs) {
     `${COOKIE}=${encodeURIComponent(valor)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${Math.floor(maxAgeMs / 1000)}${seguro}`);
 }
 
-// ---------- limite de tentativas (contra chute de senha) ----------
-const tentativas = new Map(); // chave -> { n, ate }
-function bloqueado(chave) {
-  const t = tentativas.get(chave);
-  return t && t.ate > Date.now() && t.n >= 8;
-}
-function registrarFalha(chave) {
-  const t = tentativas.get(chave);
-  if (!t || t.ate < Date.now()) tentativas.set(chave, { n: 1, ate: Date.now() + 15 * 60_000 });
-  else t.n += 1;
-}
+// ---------- limites de tentativas (contra chute de senha e cadastro em massa) ----------
+const falhasPorEmail = criarLimite({ max: 5, janelaMin: 15 });   // 5 senhas erradas na mesma conta -> espera 15 min
+const falhasPorIp = criarLimite({ max: 20, janelaMin: 15 });     // 20 erros do mesmo IP (qualquer e-mail) -> espera
+const cadastrosPorIp = criarLimite({ max: 5, janelaMin: 60 });   // 5 contas novas por hora do mesmo IP
+const espera = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // ---------- middlewares ----------
 const cacheUsuarios = new Map(); // id -> { usuario, ate } (evita ir no banco a cada requisição)
@@ -127,6 +122,8 @@ const emailValido = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
 export function rotasDeConta(app) {
   app.post('/api/cadastro', async (req, res) => {
     try {
+      const limiteIp = cadastrosPorIp.checar(req.ip);
+      if (!limiteIp.liberado) return recusar(res, limiteIp.esperaSeg, 'Muitas contas criadas daqui');
       const nome = String(req.body?.nome || '').trim();
       const email = String(req.body?.email || '').trim().toLowerCase();
       const senha = String(req.body?.senha || '');
@@ -144,6 +141,7 @@ export function rotasDeConta(app) {
         .select('id, nome, email')
         .single();
       if (error) throw error;
+      cadastrosPorIp.registrar(req.ip);
 
       gravarCookie(req, res, criarToken(usuario.id), VALIDADE_MS);
       res.status(201).json({ id: usuario.id, nome: usuario.nome, email: usuario.email, admin: ehAdmin(usuario.email) });
@@ -156,16 +154,25 @@ export function rotasDeConta(app) {
     try {
       const email = String(req.body?.email || '').trim().toLowerCase();
       const senha = String(req.body?.senha || '');
-      const chave = `login:${email}`;
-      if (bloqueado(chave)) return res.status(429).json({ erro: 'Muitas tentativas. Espere 15 minutos.' });
+      if (!email || !senha) return res.status(400).json({ erro: 'Preencha e-mail e senha' });
+
+      const porIp = falhasPorIp.checar(req.ip);
+      if (!porIp.liberado) return recusar(res, porIp.esperaSeg);
+      const porEmail = falhasPorEmail.checar(email);
+      if (!porEmail.liberado) return recusar(res, porEmail.esperaSeg, 'Muitas senhas erradas nesta conta');
 
       const { data: usuario } = await supabase
         .from('contas').select('id, nome, email, senha_hash').eq('email', email).maybeSingle();
       if (!usuario || !(await conferirSenha(senha, usuario.senha_hash))) {
-        registrarFalha(chave);
-        return res.status(401).json({ erro: 'E-mail ou senha incorretos' });
+        falhasPorEmail.registrar(email);
+        falhasPorIp.registrar(req.ip);
+        await espera(400 + Math.random() * 300); // deixa o chute de senha mais lento
+        const travou = !falhasPorEmail.checar(email).liberado;
+        return res.status(401).json({
+          erro: travou ? 'E-mail ou senha incorretos. Por segurança, espere 15 minutos pra tentar de novo.' : 'E-mail ou senha incorretos',
+        });
       }
-      tentativas.delete(chave);
+      falhasPorEmail.zerar(email);
       gravarCookie(req, res, criarToken(usuario.id), VALIDADE_MS);
       res.json({ id: usuario.id, nome: usuario.nome, email: usuario.email, admin: ehAdmin(usuario.email) });
     } catch (e) {

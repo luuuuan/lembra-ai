@@ -65,7 +65,7 @@ app.post('/api/telefone/codigo', async (req, res) => {
       .maybeSingle();
     if (dono) return res.status(409).json({ erro: 'Esse número já está em outra conta.' });
 
-    const codigo = String(randomInt(0, 1_000_000)).padStart(6, '0');
+    const codigo = String(randomInt(0, 10_000)).padStart(4, '0'); // 4 dígitos (vale 10 min, até 5 tentativas)
     const { error } = await supabase.from('contas').update({
       telefone_pendente: telefone,
       jid_pendente: jid,
@@ -86,6 +86,7 @@ app.post('/api/telefone/codigo', async (req, res) => {
 app.post('/api/telefone/confirmar', async (req, res) => {
   try {
     const codigo = String(req.body?.codigo || '').replace(/\D/g, '');
+    if (codigo.length !== 4) return res.status(400).json({ erro: 'O código tem 4 números' });
     const { data: conta, error } = await supabase
       .from('contas')
       .select('id, telefone_pendente, jid_pendente, codigo_hash, codigo_expira, codigo_tentativas')
@@ -118,6 +119,9 @@ app.post('/api/telefone/confirmar', async (req, res) => {
 
 // =============== LEMBRETES ===============
 const AVISOS_PERMITIDOS = [0, 1, 2, 3, 5, 7, 10, 15];
+const ICONES = ['luz', 'agua', 'internet', 'aluguel', 'cartao', 'boleto', 'gas', 'telefone', 'celular', 'carro', 'saude', 'escola',
+  'academia', 'streaming', 'mercado', 'condominio', 'seguro', 'imposto', 'pet', 'presente', 'investimento', 'outro', 'sino'];
+const CORES = ['amarelo', 'azul', 'roxo', 'laranja', 'rosa', 'ciano', 'verde', 'vermelho', 'cinza'];
 
 function validarLembrete(b) {
   const tipo = TIPOS[b.tipo] ? b.tipo : 'outro';
@@ -152,7 +156,10 @@ function validarLembrete(b) {
   const mensagem = String(b.mensagem || '').trim() || null;
   if (mensagem && mensagem.length > 600) throw new Error('Mensagem muito longa (máx. 600 caracteres)');
 
-  return { tipo, titulo, valor, frequencia, dia, data, avisos, horario, mensagem };
+  const icone = ICONES.includes(b.icone) ? b.icone : null; // vazio = segue o tipo
+  const cor = CORES.includes(b.cor) ? b.cor : null;
+
+  return { tipo, titulo, valor, frequencia, dia, data, avisos, horario, mensagem, icone, cor };
 }
 
 // Junta informações úteis pra tela: vencimento atual (pago ou não), próximo em aberto e próximo aviso
@@ -355,6 +362,12 @@ app.get('/api/admin/resumo', exigirAdmin, async (_req, res) => {
     enviados_hoje: await contar('envios', (q) => q.eq('status', 'enviado').gte('enviado_em', inicioDoDia)),
     pendentes: await contar('envios', (q) => q.eq('status', 'pendente')),
   });
+});
+
+// Qualquer endereço que não existe: API responde JSON, o resto vê a página 404
+app.use((req, res) => {
+  if (req.path.startsWith('/api/')) return res.status(404).json({ erro: 'Rota não encontrada' });
+  res.status(404).sendFile(pagina('404.html'));
 });
 
 app.use((err, _req, res, _next) => {

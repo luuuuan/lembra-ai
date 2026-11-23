@@ -9,7 +9,7 @@ O sistema avisa no WhatsApp dela antes de vencer, **pelo número do sistema** (o
 
 ## Como funciona
 
-1. A pessoa cria a conta e **confirma o número**: o sistema manda um código de 6 números pelo WhatsApp, e ela digita no site.
+1. A pessoa cria a conta e **confirma o número**: o sistema manda um código de 4 números pelo WhatsApp, e ela digita no site.
    - Sem confirmar, não dá pra criar lembrete.
    - O código vale 10 min e aceita no máximo 5 tentativas.
    - Dá pra pedir um código por minuto, no máximo 5 por hora.
@@ -34,6 +34,14 @@ O sistema avisa no WhatsApp dela antes de vencer, **pelo número do sistema** (o
    - Cada número recebe isso **no máximo 1 vez por semana**, guardado no banco, então vale mesmo depois de o Render reiniciar. E são no máximo 30 convites por hora no total: responder estranhos demais aumenta o risco de o chip ser marcado como spam.
    - O link usa o endereço do Render automaticamente. Se usar um domínio próprio, coloque em `SITE_URL`.
    - Mensagem que o sistema não entende recebe a ajuda no máximo 1 vez a cada 6h. E nunca são mais de 20 respostas por hora pra mesma pessoa, pra não entrar em loop com outro robô.
+
+## Segurança e detalhes de uso
+
+- **Login:** 5 senhas erradas na mesma conta travam o login dela por 15 minutos. 20 erros vindos do mesmo IP (tentando vários e-mails) também travam por 15 minutos. Cada erro ainda demora meio segundo a mais pra responder, o que deixa o chute de senha bem lento.
+- **Cadastro:** no máximo 5 contas novas por hora vindas do mesmo IP.
+- **Ícone e cor:** cada lembrete pode ter um ícone e uma cor próprios (são 23 ícones e 9 cores). Se a pessoa não escolher, vale o padrão do tipo.
+- **Página 404:** qualquer endereço que não existe mostra uma página animada com o botão "Ir pro início".
+- **Carregamento:** enquanto o painel carrega, aparecem caixas cinzas piscando no formato do conteúdo.
 
 ## 1. Supabase
 

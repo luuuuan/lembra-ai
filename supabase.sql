@@ -35,6 +35,8 @@ create table if not exists public.lembretes (
   avisos        int[] not null default '{0}',        -- dias de antecedência (0 = no dia)
   horario       time not null default '09:00',
   mensagem      text,                                -- vazio = mensagem padrão
+  icone         text,                                -- ícone escolhido (vazio = o do tipo)
+  cor           text,                                -- cor escolhida (vazio = a do tipo)
   ativo         boolean not null default true,
   criado_em     timestamptz not null default now(),
   atualizado_em timestamptz not null default now(),
@@ -43,6 +45,9 @@ create table if not exists public.lembretes (
   )
 );
 create index if not exists lembretes_conta_idx on public.lembretes (conta_id);
+-- (pra quem já tinha rodado uma versão anterior deste script)
+alter table public.lembretes add column if not exists icone text;
+alter table public.lembretes add column if not exists cor text;
 
 -- 3) Envios (cada aviso que vai sair: "conta de luz, vencimento 10/12, 3 dias antes")
 create table if not exists public.envios (

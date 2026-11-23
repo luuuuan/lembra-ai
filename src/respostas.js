@@ -93,7 +93,7 @@ async function convidarDesconhecido({ jid, numero }) {
 
   const pendente = await contaPendentePeloNumero(numero);
   const texto = pendente
-    ? `Oi, ${String(pendente.nome).split(' ')[0]}! 👋 Falta só um passo: digite no site o código de 6 números que te mandei aqui pra confirmar este WhatsApp.${SITE ? `\n\n${SITE}` : ''}\n\n_Se o código expirou, peça outro por lá._`
+    ? `Oi, ${String(pendente.nome).split(' ')[0]}! 👋 Falta só um passo: digite no site o código de 4 números que te mandei aqui pra confirmar este WhatsApp.${SITE ? `\n\n${SITE}` : ''}\n\n_Se o código expirou, peça outro por lá._`
     : textoConvite();
   await enviarTexto(jid, texto);
   console.log(`Convite enviado pra número sem conta (${pendente ? 'confirmação pendente' : 'novo'}).`);

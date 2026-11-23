@@ -53,7 +53,18 @@
   .confirmar .lado { background:var(--verde-claro); border-radius:12px; padding:18px; font-size:14px; color:#14532d; line-height:1.6; }
   .linha-form { display:flex; gap:8px; margin-top:6px; }
   .linha-form input { flex:1; }
-  .codigo { letter-spacing:.5em; font-size:22px !important; text-align:center; font-variant-numeric:tabular-nums; }
+  .caixas { display:flex; gap:10px; }
+  .caixas input {
+    width:54px; height:60px; padding:0; text-align:center; font-size:26px; font-weight:600; font-variant-numeric:tabular-nums;
+    border:1.5px solid var(--borda); border-radius:12px; caret-color:var(--verde); transition:border-color .15s, box-shadow .15s, transform .15s;
+  }
+  .caixas input:focus { border-color:var(--verde); box-shadow:0 0 0 4px rgba(31,143,95,.15); transform:translateY(-1px); }
+  .caixas input.cheia { border-color:var(--verde); background:var(--verde-claro); }
+  .caixas.erro input { border-color:var(--vermelho); background:#fef2f2; }
+  .caixas.erro { animation:treme .4s; }
+  .caixas.ok input { border-color:var(--verde); background:var(--verde); color:#fff; transition:background .25s; }
+  @keyframes treme { 20%, 60% { transform:translateX(-6px); } 40%, 80% { transform:translateX(6px); } }
+  .linha-codigo { display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-top:6px; }
   .link { background:none; color:var(--verde); padding:0; font-size:13px; }
   @keyframes sobe { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
 
@@ -65,10 +76,37 @@
   .lembrete .cab { display:flex; gap:12px; align-items:flex-start; }
   .lembrete .icone { width:44px; height:44px; flex:none; border-radius:12px; background:var(--fundo); display:grid; place-items:center; }
   .lembrete .icone .ic { width:22px; height:22px; }
-  .tipo-luz { background:#fef9c3 !important; color:#a16207; } .tipo-agua { background:#dbeafe !important; color:#1d4ed8; }
-  .tipo-internet { background:#ede9fe !important; color:#6d28d9; } .tipo-aluguel { background:#ffedd5 !important; color:#c2410c; }
-  .tipo-cartao { background:#fce7f3 !important; color:#be185d; } .tipo-boleto { background:#e0f2fe !important; color:#0369a1; }
-  .tipo-outro { background:#f3f4f6 !important; color:#4b5563; }
+  .cor-amarelo { background:#fef9c3 !important; color:#a16207; } .cor-azul { background:#dbeafe !important; color:#1d4ed8; }
+  .cor-roxo { background:#ede9fe !important; color:#6d28d9; } .cor-laranja { background:#ffedd5 !important; color:#c2410c; }
+  .cor-rosa { background:#fce7f3 !important; color:#be185d; } .cor-ciano { background:#e0f2fe !important; color:#0369a1; }
+  .cor-verde { background:#dcfce7 !important; color:#15803d; } .cor-vermelho { background:#fee2e2 !important; color:#b91c1c; }
+  .cor-cinza { background:#f3f4f6 !important; color:#4b5563; }
+
+  /* seletor de ícone e cor */
+  .linha-icone { display:flex; align-items:center; gap:10px; margin-top:10px; }
+  .previa-icone { width:42px; height:42px; border-radius:12px; display:grid; place-items:center; transition:background .2s, color .2s, transform .2s; }
+  .previa-icone .ic { width:21px; height:21px; }
+  .previa-icone.pulo { animation:pulo .35s ease-out; }
+  @keyframes pulo { 40% { transform:scale(1.15); } }
+  .seletor { margin-top:10px; border:1px solid var(--borda); border-radius:12px; padding:12px; animation:sobe .25s ease-out; }
+  .grade-icones { display:grid; grid-template-columns:repeat(auto-fill, minmax(42px, 1fr)); gap:6px; }
+  .grade-icones button { height:42px; background:#fff; border:1px solid var(--borda); border-radius:10px; display:grid; place-items:center; color:#374151; transition:all .15s; }
+  .grade-icones button:hover { border-color:var(--verde); transform:translateY(-1px); }
+  .grade-icones button.on { border-color:var(--verde); background:var(--verde-claro); color:var(--verde); box-shadow:0 0 0 2px rgba(31,143,95,.2); }
+  .cores { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; align-items:center; }
+  .cores button { width:28px; height:28px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 0 1px var(--borda); transition:transform .15s, box-shadow .15s; }
+  .cores button:hover { transform:scale(1.1); }
+  .cores button.on { box-shadow:0 0 0 2px var(--texto); }
+  .seletor .rodape-seletor { display:flex; justify-content:space-between; align-items:center; margin-top:10px; font-size:12px; color:var(--cinza); }
+
+  /* caixas de carregamento */
+  .esq { background:linear-gradient(90deg, #eceef1 25%, #f6f7f9 50%, #eceef1 75%); background-size:200% 100%; animation:brilhoEsq 1.2s linear infinite; border-radius:10px; }
+  @keyframes brilhoEsq { from { background-position:200% 0; } to { background-position:-200% 0; } }
+  #carregando { animation:aparece .3s ease-out; }
+  #carregando.saindo { opacity:0; transition:opacity .25s; }
+  @keyframes aparece { from { opacity:0; } to { opacity:1; } }
+  .esq-card { background:#fff; border:1px solid var(--borda); border-radius:14px; padding:16px; display:flex; flex-direction:column; gap:12px; }
+  .conteudo-entra { animation:sobe .35s ease-out; }
   .dica-paguei { display:flex; align-items:center; gap:8px; font-size:13px; color:#374151; background:#fff; border:1px dashed var(--borda); border-radius:10px; padding:10px 12px; margin-bottom:14px; }
   .dica-paguei .ic { color:var(--verde); }
   .faixa-pago { display:flex; align-items:center; gap:6px; font-size:13px; color:var(--verde); background:var(--verde-claro); border-radius:8px; padding:7px 10px; animation:sobe .3s ease-out; }
@@ -203,14 +241,29 @@
   <symbol id="i-sair" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></symbol>
   <symbol id="i-conversa" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.5 7.2L4 21l1.8-5A8 8 0 1 1 21 12z"/></symbol>
   <symbol id="i-pago" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/></symbol>
+  <symbol id="i-gas" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c4 0 7-2.8 7-6.8 0-3.7-2.5-6-4-8.2-.6 2-1.6 3-3 3.5.3-2.5-.5-5.2-3-7.5.2 3-1.6 5-3 7-1 1.5-1 3-1 5.2C5 19.2 8 22 12 22z"/></symbol>
+  <symbol id="i-telefone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></symbol>
+  <symbol id="i-carro" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16v-4l2.5-5h11L20 12v4z"/><path d="M4 12h16"/><circle cx="7.5" cy="16.5" r="1.8"/><circle cx="16.5" cy="16.5" r="1.8"/></symbol>
+  <symbol id="i-saude" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21.2l8.8-8.8a5.5 5.5 0 0 0 0-7.8z"/></symbol>
+  <symbol id="i-escola" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/></symbol>
+  <symbol id="i-academia" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7v10M18 7v10M3 9.5v5M21 9.5v5M6 12h12"/></symbol>
+  <symbol id="i-streaming" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="13" rx="2"/><path d="m8 2 4 4 4-4"/><path d="m10 10 5 2.5-5 2.5z"/></symbol>
+  <symbol id="i-mercado" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.6 12.4a1.5 1.5 0 0 0 1.5 1.1h9.2a1.5 1.5 0 0 0 1.5-1.2L21 7H6"/></symbol>
+  <symbol id="i-condominio" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="1.5"/><path d="M9 6h2M13 6h2M9 10h2M13 10h2M9 14h2M13 14h2M10 22v-4h4v4"/></symbol>
+  <symbol id="i-seguro" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></symbol>
+  <symbol id="i-imposto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 5 5 19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></symbol>
+  <symbol id="i-pet" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="9" r="1.8"/><circle cx="11" cy="5.5" r="1.8"/><circle cx="15.5" cy="6.5" r="1.8"/><circle cx="18" cy="10.5" r="1.8"/><path d="M12 12c-2.8 0-5.5 3.6-5.5 6a2.5 2.5 0 0 0 3.3 2.4c1.4-.5 3-.5 4.4 0A2.5 2.5 0 0 0 17.5 18c0-2.4-2.7-6-5.5-6z"/></symbol>
+  <symbol id="i-presente" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M5 12v9h14v-9M12 8v13"/><path d="M12 8S10.5 3 8 3.5 7.5 8 12 8zM12 8s1.5-5 4-4.5.5 4.5-4 4.5z"/></symbol>
+  <symbol id="i-investimento" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 17 6-6 4 4 8-8"/><path d="M14 7h7v7"/></symbol>
+  <symbol id="i-paleta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r="1"/><circle cx="17.5" cy="10.5" r="1"/><circle cx="8.5" cy="7.5" r="1"/><circle cx="6.5" cy="12.5" r="1"/><path d="M12 2a10 10 0 0 0 0 20c1 0 1.7-.8 1.7-1.7 0-.4-.2-.8-.4-1.1-.3-.3-.4-.7-.4-1.1 0-.9.8-1.7 1.7-1.7h2A5.6 5.6 0 0 0 22 11c0-5-4.5-9-10-9z"/></symbol>
 </svg>
 <header>
   <h1><span class="marca-ic"><svg class="ic"><use href="#i-sino"/></svg></span> <span class="nome-app">Lembra Aí</span></h1>
   <div class="topo-dir">
-    <span class="selo" id="selo">...</span>
+    <span class="selo esq" id="selo" style="width:90px;color:transparent">...</span>
     <button type="button" class="btn-admin" id="btnAdmin" hidden><svg class="ic"><use href="#i-celular"/></svg><span class="txt-admin">Número do sistema</span></button>
     <div class="conta">
-      <button type="button" class="avatar" id="btnConta" title="Minha conta">?</button>
+      <button type="button" class="avatar esq" id="btnConta" title="Minha conta" style="color:transparent"> </button>
       <div class="menu-conta" id="menuConta" hidden>
         <strong id="contaNome"></strong>
         <span id="contaEmail"></span>
@@ -223,11 +276,25 @@
 </header>
 
 <main>
+  <div id="carregando" aria-busy="true" aria-label="Carregando">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div class="esq" style="width:170px;height:24px"></div>
+      <div class="esq" style="width:150px;height:40px"></div>
+    </div>
+    <div class="esq" style="height:42px;margin-bottom:14px"></div>
+    <div class="grade">
+      <div class="esq-card"><div style="display:flex;gap:12px"><div class="esq" style="width:44px;height:44px;border-radius:12px"></div><div style="flex:1;display:flex;flex-direction:column;gap:8px"><div class="esq" style="height:14px;width:70%"></div><div class="esq" style="height:12px;width:40%"></div></div></div><div class="esq" style="height:12px"></div><div class="esq" style="height:12px;width:85%"></div><div class="esq" style="height:30px;width:60%"></div></div>
+      <div class="esq-card"><div style="display:flex;gap:12px"><div class="esq" style="width:44px;height:44px;border-radius:12px"></div><div style="flex:1;display:flex;flex-direction:column;gap:8px"><div class="esq" style="height:14px;width:60%"></div><div class="esq" style="height:12px;width:35%"></div></div></div><div class="esq" style="height:12px"></div><div class="esq" style="height:12px;width:75%"></div><div class="esq" style="height:30px;width:60%"></div></div>
+      <div class="esq-card"><div style="display:flex;gap:12px"><div class="esq" style="width:44px;height:44px;border-radius:12px"></div><div style="flex:1;display:flex;flex-direction:column;gap:8px"><div class="esq" style="height:14px;width:65%"></div><div class="esq" style="height:12px;width:45%"></div></div></div><div class="esq" style="height:12px"></div><div class="esq" style="height:12px;width:80%"></div><div class="esq" style="height:30px;width:60%"></div></div>
+    </div>
+    <div class="esq" style="width:140px;height:20px;margin:28px 0 12px"></div>
+    <div class="esq-card"><div class="esq" style="height:13px"></div><div class="esq" style="height:13px;width:80%"></div><div class="esq" style="height:13px;width:90%"></div></div>
+  </div>
   <!-- Passo obrigatório: confirmar o número -->
   <section class="card confirmar" id="secConfirmar" hidden>
     <div>
       <h2 id="confTitulo">Primeiro, confirme seu WhatsApp</h2>
-      <p>É nele que os lembretes vão chegar. A gente manda um código de 6 números pra confirmar que o número é seu.</p>
+      <p>É nele que os lembretes vão chegar. A gente manda um código de 4 números pra confirmar que o número é seu.</p>
 
       <div id="etapaNumero">
         <label class="campo" for="inTelefone">Seu WhatsApp com DDD</label>
@@ -238,9 +305,14 @@
       </div>
 
       <div id="etapaCodigo" hidden>
-        <label class="campo" for="inCodigo">Código que chegou no WhatsApp</label>
-        <div class="linha-form">
-          <input id="inCodigo" class="codigo" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000">
+        <label class="campo">Código que chegou no WhatsApp</label>
+        <div class="linha-codigo">
+          <div class="caixas" id="caixas">
+            <input inputmode="numeric" maxlength="1" autocomplete="one-time-code" aria-label="1º número">
+            <input inputmode="numeric" maxlength="1" aria-label="2º número">
+            <input inputmode="numeric" maxlength="1" aria-label="3º número">
+            <input inputmode="numeric" maxlength="1" aria-label="4º número">
+          </div>
           <button type="button" class="primario" id="btnConfirmar">Confirmar</button>
         </div>
         <p style="margin-top:8px"><button type="button" class="link" id="btnOutroNumero">Usar outro número</button> · <button type="button" class="link" id="btnReenviar">Reenviar código</button></p>
@@ -276,6 +348,18 @@
 
     <label class="campo">O que é?</label>
     <div class="chips" id="chipsTipo"></div>
+    <div class="linha-icone">
+      <div class="previa-icone" id="previaIcone"></div>
+      <button type="button" class="link" id="btnPersonalizar"><svg class="ic"><use href="#i-paleta"/></svg> Personalizar ícone e cor</button>
+    </div>
+    <div class="seletor" id="seletor" hidden>
+      <div class="grade-icones" id="gradeIcones"></div>
+      <div class="cores" id="coresIcone"></div>
+      <div class="rodape-seletor">
+        <span id="txtPadrao">Seguindo o padrão do tipo</span>
+        <button type="button" class="link" id="btnIconePadrao">Voltar ao padrão</button>
+      </div>
+    </div>
 
     <div class="dois">
       <div>
@@ -363,15 +447,20 @@ const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
 
 const TIPOS = {
-  luz: { icone: 'luz', titulo: 'Conta de luz', curto: 'Luz' },
-  agua: { icone: 'agua', titulo: 'Conta de água', curto: 'Água' },
-  internet: { icone: 'internet', titulo: 'Internet', curto: 'Internet' },
-  aluguel: { icone: 'aluguel', titulo: 'Aluguel', curto: 'Aluguel' },
-  cartao: { icone: 'cartao', titulo: 'Fatura do cartão', curto: 'Cartão' },
-  boleto: { icone: 'boleto', titulo: 'Boleto', curto: 'Boleto' },
-  outro: { icone: 'outro', titulo: '', curto: 'Outro' },
+  luz: { icone: 'luz', cor: 'amarelo', titulo: 'Conta de luz', curto: 'Luz' },
+  agua: { icone: 'agua', cor: 'azul', titulo: 'Conta de água', curto: 'Água' },
+  internet: { icone: 'internet', cor: 'roxo', titulo: 'Internet', curto: 'Internet' },
+  aluguel: { icone: 'aluguel', cor: 'laranja', titulo: 'Aluguel', curto: 'Aluguel' },
+  cartao: { icone: 'cartao', cor: 'rosa', titulo: 'Fatura do cartão', curto: 'Cartão' },
+  boleto: { icone: 'boleto', cor: 'ciano', titulo: 'Boleto', curto: 'Boleto' },
+  outro: { icone: 'outro', cor: 'cinza', titulo: '', curto: 'Outro' },
 };
 const icone = (nome, cls = '') => `<svg class="ic${cls ? ' ' + cls : ''}"><use href="#i-${nome}"/></svg>`;
+const ICONES_LISTA = ['luz', 'agua', 'gas', 'internet', 'telefone', 'celular', 'aluguel', 'condominio', 'cartao', 'boleto', 'imposto',
+  'carro', 'seguro', 'saude', 'escola', 'academia', 'streaming', 'mercado', 'pet', 'presente', 'investimento', 'sino', 'outro'];
+const CORES_LISTA = { amarelo: '#facc15', laranja: '#fb923c', vermelho: '#f87171', rosa: '#f472b6', roxo: '#a78bfa', azul: '#60a5fa', ciano: '#38bdf8', verde: '#4ade80', cinza: '#9ca3af' };
+const iconeDo = (l) => l.icone || (TIPOS[l.tipo] || TIPOS.outro).icone;
+const corDo = (l) => l.cor || (TIPOS[l.tipo] || TIPOS.outro).cor;
 const AVISOS = [[15, '15 dias antes'], [10, '10 dias antes'], [7, '7 dias antes'], [5, '5 dias antes'], [3, '3 dias antes'], [2, '2 dias antes'], [1, '1 dia antes'], [0, 'No dia']];
 
 // Sessão expirou -> login
@@ -433,13 +522,24 @@ function desenharTela() {
   $('confTitulo').textContent = trocandoNumero ? 'Trocar meu número' : 'Primeiro, confirme seu WhatsApp';
   $('cancelarTroca').hidden = !(trocandoNumero && confirmado);
   $('contaTel').innerHTML = confirmado ? `${icone('celular')} ${esc(fmtTel(usuario.telefone))} <span style="color:var(--verde)">${icone('check')} confirmado</span>` : `${icone('celular')} número não confirmado`;
-  if (confirmado && !trocandoNumero) { carregarLembretes(); carregarHistorico(); }
+  if (confirmado && !trocandoNumero) return Promise.all([carregarLembretes(), carregarHistorico()]);
+  return Promise.resolve();
+}
+
+function terminarCarregamento() {
+  const c = $('carregando');
+  if (!c) return;
+  c.classList.add('saindo');
+  setTimeout(() => {
+    c.remove();
+    document.querySelectorAll('main > section:not([hidden])').forEach((s) => s.classList.add('conteudo-entra'));
+  }, 250);
 }
 
 // =============== confirmar número ===============
 function mostrarEtapa(codigo) {
   $('etapaNumero').hidden = codigo; $('etapaCodigo').hidden = !codigo;
-  setTimeout(() => (codigo ? $('inCodigo') : $('inTelefone')).focus(), 50);
+  setTimeout(() => (codigo ? caixas[0] : $('inTelefone')).focus(), 50);
 }
 
 async function pedirCodigo() {
@@ -449,6 +549,7 @@ async function pedirCodigo() {
   try {
     await api('/api/telefone/codigo', { method: 'POST', body: { telefone } });
     msg('msgConfirmar', `Código enviado pro ${fmtTel(telefone)}. Confira seu WhatsApp.`, 'ok');
+    limparCaixas();
     mostrarEtapa(true);
   } catch (e) { msg('msgConfirmar', e.message); }
   $('btnCodigo').disabled = false;
@@ -458,22 +559,61 @@ $('btnReenviar').onclick = pedirCodigo;
 $('inTelefone').onkeydown = (e) => { if (e.key === 'Enter') pedirCodigo(); };
 $('btnOutroNumero').onclick = () => { mostrarEtapa(false); msg('msgConfirmar', '', ''); };
 
+// ----- 4 quadradinhos do código -----
+const caixas = [...document.querySelectorAll('#caixas input')];
+const lerCodigo = () => caixas.map((c) => c.value).join('');
+function limparCaixas() { caixas.forEach((c) => { c.value = ''; c.classList.remove('cheia'); }); }
+function preencher(digitos, inicio = 0) {
+  [...digitos].slice(0, 4 - inicio).forEach((d, i) => { caixas[inicio + i].value = d; caixas[inicio + i].classList.add('cheia'); });
+  const proxima = caixas.find((c) => !c.value);
+  (proxima || caixas[3]).focus();
+  if (lerCodigo().length === 4) confirmarCodigo();
+}
+caixas.forEach((caixa, i) => {
+  caixa.addEventListener('input', () => {
+    const digitos = caixa.value.replace(/\D/g, '');
+    caixa.value = '';
+    caixa.classList.remove('cheia');
+    $('caixas').classList.remove('erro');
+    if (digitos) preencher(digitos, i); // aceita colar ou o preenchimento automático do celular
+  });
+  caixa.addEventListener('keydown', (e) => {
+    if (e.key === 'Backspace' && !caixa.value && i > 0) { caixas[i - 1].value = ''; caixas[i - 1].classList.remove('cheia'); caixas[i - 1].focus(); e.preventDefault(); }
+    if (e.key === 'ArrowLeft' && i > 0) caixas[i - 1].focus();
+    if (e.key === 'ArrowRight' && i < 3) caixas[i + 1].focus();
+    if (e.key === 'Enter') confirmarCodigo();
+  });
+  caixa.addEventListener('paste', (e) => {
+    e.preventDefault();
+    const digitos = (e.clipboardData?.getData('text') || '').replace(/\D/g, '');
+    if (digitos) { limparCaixas(); preencher(digitos, 0); }
+  });
+  caixa.addEventListener('focus', () => caixa.select());
+});
+
+let confirmando = false;
 async function confirmarCodigo() {
-  const codigo = $('inCodigo').value.replace(/\D/g, '');
-  if (codigo.length !== 6) return msg('msgConfirmar', 'O código tem 6 números');
-  $('btnConfirmar').disabled = true;
+  const codigo = lerCodigo();
+  if (codigo.length !== 4) return msg('msgConfirmar', 'O código tem 4 números');
+  if (confirmando) return;
+  confirmando = true; $('btnConfirmar').disabled = true;
   try {
     const j = await api('/api/telefone/confirmar', { method: 'POST', body: { codigo } });
+    $('caixas').classList.add('ok');
+    await new Promise((r) => setTimeout(r, 450));
     usuario.telefone = j.telefone;
     trocandoNumero = false;
-    $('inCodigo').value = ''; mostrarEtapa(false); msg('msgConfirmar', '', '');
+    $('caixas').classList.remove('ok'); limparCaixas(); mostrarEtapa(false); msg('msgConfirmar', '', '');
     toast('Número confirmado!', false, 'ok');
     desenharTela();
-  } catch (e) { msg('msgConfirmar', e.message); }
-  $('btnConfirmar').disabled = false;
+  } catch (e) {
+    msg('msgConfirmar', e.message);
+    $('caixas').classList.remove('erro'); void $('caixas').offsetWidth; $('caixas').classList.add('erro');
+    limparCaixas(); caixas[0].focus();
+  }
+  confirmando = false; $('btnConfirmar').disabled = false;
 }
 $('btnConfirmar').onclick = confirmarCodigo;
-$('inCodigo').oninput = () => { $('inCodigo').value = $('inCodigo').value.replace(/\D/g, '').slice(0, 6); if ($('inCodigo').value.length === 6) confirmarCodigo(); };
 $('btnTrocarTel').onclick = () => { $('menuConta').hidden = true; trocandoNumero = true; mostrarEtapa(false); desenharTela(); };
 $('btnCancelarTroca').onclick = () => { trocandoNumero = false; desenharTela(); };
 
@@ -504,7 +644,7 @@ function desenharLista() {
       : '';
     return `<article class="lembrete ${l.ativo ? '' : 'pausado'}" style="animation-delay:${i * 40}ms">
       <div class="cab">
-        <div class="icone tipo-${l.tipo}">${icone(t.icone)}</div>
+        <div class="icone cor-${corDo(l)}">${icone(iconeDo(l))}</div>
         <div style="min-width:0">
           <h3>${esc(l.titulo)}</h3>
           ${l.valor !== null ? `<div class="valor">${fmtValor(l.valor)}</div>` : ''}
@@ -581,7 +721,32 @@ async function carregarHistorico() {
 
 // =============== editor ===============
 let editando = null;
-const ed = { tipo: 'luz', freq: 'mensal', avisos: new Set([3, 0]), msg: 'padrao' };
+const ed = { tipo: 'luz', freq: 'mensal', avisos: new Set([3, 0]), msg: 'padrao', icone: null, cor: null };
+
+// ----- ícone e cor personalizados -----
+const NOMES_ICONES = { luz: 'Luz', agua: 'Água', gas: 'Gás', internet: 'Internet', telefone: 'Telefone', celular: 'Celular', aluguel: 'Casa',
+  condominio: 'Condomínio', cartao: 'Cartão', boleto: 'Boleto', imposto: 'Imposto', carro: 'Carro', seguro: 'Seguro', saude: 'Saúde',
+  escola: 'Escola', academia: 'Academia', streaming: 'Streaming', mercado: 'Mercado', pet: 'Pet', presente: 'Presente',
+  investimento: 'Investimento', sino: 'Lembrete', outro: 'Outro' };
+$('gradeIcones').innerHTML = ICONES_LISTA.map((n) => `<button type="button" data-icone="${n}" title="${NOMES_ICONES[n]}" aria-label="${NOMES_ICONES[n]}">${icone(n)}</button>`).join('');
+$('coresIcone').innerHTML = '<span style="font-size:12px;color:var(--cinza);margin-right:2px">Cor:</span>'
+  + Object.entries(CORES_LISTA).map(([n, hex]) => `<button type="button" data-cor="${n}" title="${n[0].toUpperCase() + n.slice(1)}" aria-label="Cor ${n}" style="background:${hex}"></button>`).join('');
+function desenharIcone(animar = false) {
+  const l = { tipo: ed.tipo, icone: ed.icone, cor: ed.cor };
+  const p = $('previaIcone');
+  p.className = `previa-icone cor-${corDo(l)}`;
+  p.innerHTML = icone(iconeDo(l));
+  if (animar) { void p.offsetWidth; p.classList.add('pulo'); }
+  $('gradeIcones').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.icone === iconeDo(l)));
+  $('coresIcone').querySelectorAll('[data-cor]').forEach((b) => b.classList.toggle('on', b.dataset.cor === corDo(l)));
+  const personalizado = Boolean(ed.icone || ed.cor);
+  $('txtPadrao').textContent = personalizado ? 'Personalizado' : 'Seguindo o padrão do tipo';
+  $('btnIconePadrao').hidden = !personalizado;
+}
+$('btnPersonalizar').onclick = () => { $('seletor').hidden = !$('seletor').hidden; };
+$('gradeIcones').onclick = (e) => { const b = e.target.closest('[data-icone]'); if (b) { ed.icone = b.dataset.icone; desenharIcone(true); } };
+$('coresIcone').onclick = (e) => { const b = e.target.closest('[data-cor]'); if (b) { ed.cor = b.dataset.cor; desenharIcone(true); } };
+$('btnIconePadrao').onclick = () => { ed.icone = null; ed.cor = null; desenharIcone(true); };
 
 $('chipsTipo').innerHTML = Object.entries(TIPOS).map(([k, t]) => `<button type="button" class="chip" data-tipo="${k}">${icone(t.icone)} ${t.curto}</button>`).join('');
 $('chipsAvisos').innerHTML = AVISOS.map(([d, n]) => `<button type="button" class="chip" data-d="${d}">${n}</button>`).join('');
@@ -603,7 +768,7 @@ $('chipsTipo').onclick = (e) => {
   const eraPadrao = !nomeAtual || Object.values(TIPOS).some((t) => t.titulo === nomeAtual);
   ed.tipo = c.dataset.tipo;
   if (eraPadrao) $('edNome').value = TIPOS[ed.tipo].titulo;
-  marcarChips(); atualizarPrevia();
+  marcarChips(); desenharIcone(true); atualizarPrevia();
 };
 $('chipsAvisos').onclick = (e) => {
   const c = e.target.closest('[data-d]'); if (!c) return;
@@ -636,6 +801,8 @@ function dadosDoEditor() {
     avisos: [...ed.avisos],
     horario: $('edHorario').value || '09:00',
     mensagem: ed.msg === 'minha' ? $('edMensagem').value : '',
+    icone: ed.icone || '',
+    cor: ed.cor || '',
   };
 }
 
@@ -704,6 +871,9 @@ function abrirEditor(l = null, tipo = 'luz') {
   ed.freq = l?.frequencia || 'mensal';
   ed.avisos = new Set(l?.avisos || [3, 0]);
   ed.msg = l?.mensagem ? 'minha' : 'padrao';
+  ed.icone = l?.icone || null;
+  ed.cor = l?.cor || null;
+  $('seletor').hidden = true;
   $('edNome').value = l?.titulo ?? TIPOS[ed.tipo].titulo;
   $('edValor').value = l?.valor != null ? String(l.valor).replace('.', ',') : '';
   $('edDia').value = String(l?.dia || 10);
@@ -714,6 +884,7 @@ function abrirEditor(l = null, tipo = 'luz') {
   $('painelIa').hidden = true; $('sugestoes').innerHTML = ''; $('btnIa').innerHTML = `${icone('ia')} Sugerir com IA`;
   msg('edMsg', '', '');
   marcarChips();
+  desenharIcone();
   $('editor').showModal();
   atualizarPrevia();
 }
@@ -791,12 +962,15 @@ $('btnSair').onclick = async () => { await fetch('/api/logout', { method: 'POST'
 // =============== início ===============
 (async function iniciar() {
   try { usuario = await api('/api/me'); } catch { return; }
+  $('btnConta').classList.remove('esq'); $('btnConta').style.color = '';
+  $('selo').classList.remove('esq'); $('selo').style.cssText = '';
   $('btnConta').textContent = (usuario.nome || '?').trim().charAt(0).toUpperCase();
   $('contaNome').textContent = usuario.nome;
   $('contaEmail').textContent = usuario.email;
   $('btnAdmin').hidden = !usuario.admin;
   await carregarSistema();
-  desenharTela();
+  await desenharTela().catch(() => {});
+  terminarCarregamento();
   setInterval(carregarSistema, 20000);
   setInterval(() => { if (!$('secLembretes').hidden) carregarHistorico(); }, 60000);
 })();
