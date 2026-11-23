@@ -2,9 +2,9 @@
 // Datas sempre no horário de Brasília (UTC-3, sem horário de verão).
 import cron from 'node-cron';
 import { supabase } from './supabase.js';
-import { online, enviarTexto } from './whatsapp.js';
+import { online, enviarTexto, enviarEnquete } from './whatsapp.js';
 import { situacaoDasContas, noPlano } from './planos.js';
-import { abrirConta, abrirLembrete, cifrarTextoEnvio } from './cripto.js';
+import { abrirConta, abrirLembrete, cifrarTextoEnvio, cifrar, ctx } from './cripto.js';
 
 const FUSO = '-03:00';
 const HORIZONTE_DIAS = 45; // gera os avisos dos próximos 45 dias
@@ -71,7 +71,7 @@ export async function pagamentosDe(lembreteIds) {
 const fmtValor = (v) =>
   v === null || v === undefined || v === '' ? '' : Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const fmtData = (iso) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
-const quando = (d) => (d === 0 ? 'hoje' : d === 1 ? 'amanhã' : `em ${d} dias`);
+const quando = (d) => (d < 0 ? 'já venceu' : d === 0 ? 'hoje' : d === 1 ? 'amanhã' : `em ${d} dias`);
 
 export const RODAPE = '\n\n_Já pagou? Responda *paguei* que eu paro de lembrar._';
 
@@ -99,11 +99,70 @@ function montarCorpo({ lembrete, nome, vencimento, diasAntes }) {
 
   const oi = primeiroNome ? `Oi, ${primeiroNome}!` : 'Oi!';
   const deValor = valor ? ` de *${valor}*` : '';
+  if (diasAntes < 0) { // lembrete adiado que chegou depois do vencimento
+    return `${tipo.emoji} ${oi} Passando de novo: *${lembrete.titulo}*${deValor} venceu dia ${data}.`;
+  }
   if (diasAntes === 0) {
     return `${tipo.emoji} ${oi} Hoje é o dia: *${lembrete.titulo}*${deValor} vence *hoje* (${data}). Não esquece! 😉`;
   }
   return `${tipo.emoji} ${oi} Lembrete: *${lembrete.titulo}*${deValor} vence *${quando(diasAntes)}*, dia ${data}.`;
 }
+
+// ---------- enquete no aviso ----------
+// O aviso sai como enquete: a pessoa toca numa opção em vez de digitar. "paguei" digitado continua valendo.
+// Pra voltar ao aviso só de texto, coloque AVISO_COM_ENQUETE=0 no Render.
+export const ENQUETE_LIGADA = process.env.AVISO_COM_ENQUETE !== '0';
+export const OPCOES = {
+  aviso: { pago: '✅ Já paguei', adiar: '⏰ Me lembra mais tarde' },
+  adiar: { h1: 'Daqui 1 hora', h3: 'Daqui 3 horas', noite: 'Hoje à noite (20h)', amanha: 'Amanhã de manhã (9h)' },
+};
+const semFormatacao = (t) => t.replace(/[*_~]/g, '');
+
+// Guarda a enquete (com o segredo cifrado) pra conseguir ler o voto depois
+export async function guardarEnquete({ id, segredo, tipo, contaId, lembreteId, vencimento }) {
+  const { error } = await supabase.from('enquetes').insert({
+    id, tipo, conta_id: contaId, lembrete_id: lembreteId, vencimento, segredo: cifrar(segredo, ctx('enquetes', 'segredo', id)),
+  });
+  if (error) throw error;
+}
+
+// Manda um aviso. Com enquete: a pergunta já é o próprio aviso (se couber); se a mensagem for longa,
+// vai o texto e logo depois a enquete "Já pagou?". Devolve { msgId, texto } (texto = o que a pessoa leu).
+export async function enviarAviso({ jid, contaId, lembrete, nome, vencimento, diasAntes, prefixo = '' }) {
+  if (!ENQUETE_LIGADA) {
+    const texto = prefixo + montarTexto({ lembrete, nome, vencimento, diasAntes });
+    return { msgId: await enviarTexto(jid, texto), texto };
+  }
+  const corpo = prefixo + montarTexto({ lembrete, nome, vencimento, diasAntes, rodape: false });
+  const opcoes = Object.values(OPCOES.aviso);
+  try {
+    let msgId = null;
+    let pergunta = semFormatacao(corpo);
+    if (pergunta.length > 250) { // não cabe como pergunta da enquete
+      msgId = await enviarTexto(jid, corpo);
+      pergunta = 'Já pagou essa conta?';
+    }
+    const enquete = await enviarEnquete(jid, { pergunta, opcoes });
+    await guardarEnquete({ ...enquete, tipo: 'aviso', contaId, lembreteId: lembrete.id, vencimento });
+    return { msgId: msgId || enquete.id, texto: corpo };
+  } catch (e) {
+    console.error('Enquete falhou, mandando só texto:', e.message);
+    const texto = prefixo + montarTexto({ lembrete, nome, vencimento, diasAntes });
+    return { msgId: await enviarTexto(jid, texto), texto };
+  }
+}
+
+// "Me lembra mais tarde": cria um aviso extra pra esse vencimento.
+// dias_antes negativo marca o aviso adiado (e, por ser o horário em segundos, nunca repete).
+export async function adiarAviso({ lembrete, vencimento, quando }) {
+  const { error } = await supabase.from('envios').insert({
+    lembrete_id: lembrete.id, conta_id: lembrete.conta_id, vencimento,
+    dias_antes: -Math.floor(quando.getTime() / 1000), enviar_em: quando.toISOString(),
+  });
+  if (error) throw error;
+}
+export const ehAdiado = (envio) => envio.dias_antes < 0;
+const diasAte = (vencimento) => Math.round((Date.parse(vencimento) - Date.parse(hojeBR().str)) / 86_400_000);
 
 // ---------- geração dos avisos ----------
 export function avisosPrevistos(lembrete, agora = new Date(), pagos = new Set()) {
@@ -153,6 +212,8 @@ export async function regenerarConta(contaId) {
 
 // De tempos em tempos: garante que os avisos dos próximos meses existam
 export async function gerarTodos() {
+  // enquetes com mais de 40 dias não recebem mais voto útil
+  await supabase.from('enquetes').delete().lt('criado_em', new Date(Date.now() - 40 * 86_400_000).toISOString());
   const { data: linhas, error } = await supabase.from('lembretes').select('*').eq('ativo', true).limit(10000);
   if (error) throw error;
   const data = (linhas || []).map(abrirLembrete);
@@ -233,7 +294,7 @@ export async function dispararPendentes() {
         await marcar(envio.id, { status: 'expirado', erro: motivo });
         continue;
       }
-      if (!lembrete.avisos.includes(envio.dias_antes)) { // plano grátis: só 1 aviso por lembrete
+      if (!ehAdiado(envio) && !lembrete.avisos.includes(envio.dias_antes)) { // plano grátis: só 1 aviso por lembrete
         await marcar(envio.id, { status: 'cancelado', erro: 'Plano grátis: só 1 aviso por lembrete' });
         continue;
       }
@@ -242,9 +303,11 @@ export async function dispararPendentes() {
         continue;
       }
 
-      const texto = montarTexto({ lembrete, nome: conta.nome, vencimento: envio.vencimento, diasAntes: envio.dias_antes });
+      const diasAntes = ehAdiado(envio) ? diasAte(envio.vencimento) : envio.dias_antes;
+      let texto = montarTexto({ lembrete, nome: conta.nome, vencimento: envio.vencimento, diasAntes });
       try {
-        const msgId = await enviarTexto(conta.telefone_jid, texto);
+        const enviado = await enviarAviso({ jid: conta.telefone_jid, contaId: conta.id, lembrete, nome: conta.nome, vencimento: envio.vencimento, diasAntes });
+        const msgId = enviado.msgId; texto = enviado.texto;
         await marcar(envio.id, { status: 'enviado', texto: cifrarTextoEnvio(envio.id, texto), msg_id: msgId, erro: null, enviado_em: new Date().toISOString() });
         console.log(`Lembrete enviado: ${lembrete.tipo} -> ${conta.id.slice(0, 8)}`); // sem dado pessoal no log
       } catch (e) {

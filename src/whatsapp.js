@@ -12,7 +12,10 @@ import makeWASocket, {
   isJidBroadcast,
   isLidUser,
   isPnUser,
+  decryptPollVote,
+  jidNormalizedUser,
 } from 'baileys';
+import { createHash, randomBytes } from 'node:crypto';
 import pino from 'pino';
 import { supabase } from './supabase.js';
 import { cifrar, decifrar, ctx } from './cripto.js';
@@ -96,9 +99,14 @@ export const getStatus = () => ({
 });
 export const getQr = () => sistema.qr;
 
-// Quem quer saber das mensagens que chegam (o "paguei" etc.)
+// Quem quer saber das mensagens que chegam (o "paguei" etc.) e dos votos nas enquetes
 let aoReceber = null;
 export const quandoChegarMensagem = (fn) => { aoReceber = fn; };
+let aoVotar = null;
+export const quandoChegarVoto = (fn) => { aoVotar = fn; };
+
+// Voto numa enquete (já vem dentro de ephemeral quando a conversa tem mensagens temporárias)
+const votoDa = (m) => m?.pollUpdateMessage || m?.ephemeralMessage?.message?.pollUpdateMessage || null;
 
 const textoDa = (m) =>
   m?.conversation || m?.extendedTextMessage?.text || m?.ephemeralMessage?.message?.extendedTextMessage?.text
@@ -147,6 +155,11 @@ export async function conectar() {
       try {
         const chave = msg.key || {};
         if (chave.fromMe || !chave.remoteJid || isJidGroup(chave.remoteJid) || isJidBroadcast(chave.remoteJid)) continue;
+        const voto = votoDa(msg.message);
+        if (voto?.pollCreationMessageKey?.id && voto.vote) {
+          if (aoVotar) await aoVotar({ jid: chave.remoteJid, enqueteId: voto.pollCreationMessageKey.id, voto: { cifrado: voto.vote, chave } });
+          continue;
+        }
         const texto = textoDa(msg.message).trim();
         if (!texto) continue; // figurinha, áudio, foto... ignora
         const numero = await numeroDoRemetente(sock, chave);
@@ -227,6 +240,38 @@ export async function resolverNumero(telefone) {
   const [resultado] = await sock.onWhatsApp(numero);
   if (!resultado?.exists) throw new Error('Esse número não tem WhatsApp');
   return resultado.jid;
+}
+
+// ---------- enquetes (o "botão" possível sem a API oficial) ----------
+const hashOpcao = (nome) => createHash('sha256').update(Buffer.from(nome)).digest('hex');
+
+// Manda uma enquete de escolha única. Devolve o id e o segredo (precisa guardar pra ler os votos depois).
+export async function enviarEnquete(jid, { pergunta, opcoes }) {
+  const segredo = randomBytes(32);
+  const enviada = await sockConectado().sendMessage(jid, {
+    poll: { name: pergunta.slice(0, 255), values: opcoes, selectableCount: 1, messageSecret: segredo },
+  });
+  return { id: enviada?.key?.id || null, segredo: segredo.toString('base64') };
+}
+
+// Abre o voto: o WhatsApp manda cifrado (AES-GCM) com uma chave derivada do segredo da enquete,
+// do id dela, de quem criou e de quem votou. Como "quem" pode vir como número ou como @lid,
+// tenta as combinações até a cifra fechar. Devolve o nome da opção escolhida (ou null se desmarcou).
+export function lerVoto({ cifrado, chave }, { enqueteId, segredo, opcoes }, eu = sistema.sock?.user) {
+  const norm = (j) => { try { return j ? jidNormalizedUser(j) : null; } catch { return null; } };
+  const criadores = [...new Set([eu?.id, eu?.lid].map(norm).filter(Boolean))];
+  const votantes = [...new Set([chave.participant, chave.participantAlt, chave.remoteJid, chave.remoteJidAlt].map(norm).filter(Boolean))];
+  const pollEncKey = Buffer.from(segredo, 'base64');
+  for (const pollCreatorJid of criadores) {
+    for (const voterJid of votantes) {
+      try {
+        const voto = decryptPollVote(cifrado, { pollCreatorJid, pollMsgId: enqueteId, pollEncKey, voterJid });
+        const escolhidas = (voto.selectedOptions || []).map((o) => Buffer.from(o).toString('hex'));
+        return opcoes.find((nome) => escolhidas.includes(hashOpcao(nome))) || null;
+      } catch { /* combinação errada: tenta a próxima */ }
+    }
+  }
+  throw new Error('Não consegui ler o voto da enquete');
 }
 
 // Devolve o id da mensagem enviada (pra saber depois a qual aviso a pessoa respondeu)

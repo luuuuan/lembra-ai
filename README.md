@@ -56,6 +56,7 @@ Quem abre o site sem estar logado vê a página de apresentação (`public/lp.ht
 
 ## Segurança e detalhes de uso
 
+- **Aviso com opções (enquete):** cada aviso chega como uma enquete do WhatsApp com **✅ Já paguei** e **⏰ Me lembra mais tarde**. No "mais tarde", chega outra enquete perguntando quando: daqui 1 hora, daqui 3 horas, hoje à noite (20h) ou amanhã de manhã (9h). O "paguei" digitado continua funcionando. Os votos chegam cifrados pelo próprio WhatsApp e o servidor abre com o segredo de cada enquete (guardado cifrado na tabela `enquetes`). Pra voltar ao aviso só de texto: `AVISO_COM_ENQUETE=0` no Render.
 - **Dados cifrados:** nome, e-mail e telefone (de todo mundo, admin incluído), o nome, valor e mensagem de cada lembrete, o texto dos avisos enviados e a sessão do WhatsApp do sistema ficam cifrados no banco com **AES-256-GCM**. Quem abrir o Supabase só vê `c1.xxxx`. A chave fica só no servidor (`CHAVE_DADOS`).
   - Cada valor fica amarrado à sua tabela, coluna e linha: copiar um dado cifrado de um lugar pro outro não funciona, e qualquer alteração no dado cifrado é detectada.
   - Pra achar a conta no login (e-mail) e quando a pessoa responde no WhatsApp (número), o banco guarda um **índice cego** (HMAC-SHA256 com outra chave derivada): dá pra buscar, mas não dá pra voltar ao dado.

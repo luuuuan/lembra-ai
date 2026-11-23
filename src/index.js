@@ -13,9 +13,9 @@ import { paginaLegal } from './legal.js';
 import * as whatsapp from './whatsapp.js';
 import { sugerirMensagens, iaConfigurada, TONS } from './ia.js';
 import { LIMITE_GRATIS, PRECOS, LINK_PAGAMENTO, situacaoDasContas, ehPremium as ehPremiumAgora } from './planos.js';
-import { tratarMensagem } from './respostas.js';
+import { tratarMensagem, tratarVoto } from './respostas.js';
 import {
-  TIPOS, montarTexto, regenerar, gerarTodos, iniciarAgendador, dispararPendentes, destravar,
+  TIPOS, montarTexto, enviarAviso, ENQUETE_LIGADA, OPCOES, regenerar, gerarTodos, iniciarAgendador, dispararPendentes, destravar,
   proximoVencimento, hojeBR, pagamentosDe, chavePago, marcarPago, desfazerPago, regenerarConta,
 } from './lembretes.js';
 import {
@@ -359,7 +359,10 @@ app.post('/api/lembretes/previa', (req, res) => {
   try {
     const campos = validarLembrete({ ...req.body, data: req.body?.data || hojeBR().str });
     const vencimento = proximoVencimento(campos) || hojeBR().str;
-    res.json({ texto: montarTexto({ lembrete: campos, nome: req.usuario.nome, vencimento, diasAntes: campos.avisos[0] }) });
+    const args = { lembrete: campos, nome: req.usuario.nome, vencimento, diasAntes: campos.avisos[0] };
+    res.json(ENQUETE_LIGADA
+      ? { texto: montarTexto({ ...args, rodape: false }), enquete: Object.values(OPCOES.aviso) }
+      : { texto: montarTexto(args), enquete: null });
   } catch (e) {
     erroPadrao(res, e, 400);
   }
@@ -393,8 +396,7 @@ app.post('/api/lembretes/:id/testar', async (req, res) => {
     const hoje = hojeBR().str;
     const vencimento = proximoVencimento(lembrete) || hoje;
     const diasAntes = Math.max(0, Math.round((Date.parse(vencimento) - Date.parse(hoje)) / 86_400_000)); // dias reais até vencer
-    const texto = montarTexto({ lembrete, nome: conta.nome, vencimento, diasAntes });
-    await whatsapp.enviarTexto(conta.telefone_jid, `🧪 *Teste*\n\n${texto}`);
+    await enviarAviso({ jid: conta.telefone_jid, contaId: conta.id, lembrete, nome: conta.nome, vencimento, diasAntes, prefixo: '🧪 Teste\n\n' });
     res.json({ ok: true });
   } catch (e) {
     erroPadrao(res, e);
@@ -546,6 +548,7 @@ app.listen(PORT, async () => {
   console.log(`Servidor na porta ${PORT}`);
   await destravar().catch(() => {});
   whatsapp.quandoChegarMensagem(tratarMensagem); // "paguei", "desfazer", "parar", "ajuda"
+  whatsapp.quandoChegarVoto(tratarVoto); // toque nas enquetes ("Já paguei", "Me lembra mais tarde")
   whatsapp.iniciar()
     .then((tinha) => console.log(tinha ? 'Reconectando o WhatsApp do sistema...' : 'WhatsApp do sistema ainda não conectado (admin precisa ler o QR).'))
     .catch((e) => console.error('Erro ao iniciar o WhatsApp:', e.message));

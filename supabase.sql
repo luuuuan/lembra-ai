@@ -115,6 +115,20 @@ create table if not exists public.contatos_desconhecidos (
   vezes         int not null default 1
 );
 
+-- 3d) Enquetes mandadas nos avisos ("Já paguei" / "Me lembra mais tarde"). O segredo vai cifrado:
+--     sem ele não dá pra ler o voto. Enquetes com mais de 40 dias são apagadas sozinhas.
+create table if not exists public.enquetes (
+  id          text primary key,      -- id da mensagem da enquete no WhatsApp
+  tipo        text not null check (tipo in ('aviso', 'adiar')),
+  conta_id    uuid not null references public.contas (id) on delete cascade,
+  lembrete_id uuid not null references public.lembretes (id) on delete cascade,
+  vencimento  date not null,
+  segredo     text not null,         -- cifrado
+  resposta    text,                  -- última opção escolhida
+  criado_em   timestamptz not null default now()
+);
+create index if not exists enquetes_criado_idx on public.enquetes (criado_em);
+
 -- 4) Sessão do WhatsApp do sistema (o seu chip)
 create table if not exists public.sistema_auth (
   id         text primary key,
@@ -129,7 +143,8 @@ alter table public.lembretes    enable row level security;
 alter table public.envios       enable row level security;
 alter table public.pagamentos   enable row level security;
 alter table public.contatos_desconhecidos enable row level security;
+alter table public.enquetes     enable row level security;
 alter table public.sistema_auth enable row level security;
 
 grant usage on schema public to service_role;
-grant all on table public.contas, public.lembretes, public.envios, public.pagamentos, public.contatos_desconhecidos, public.sistema_auth to service_role;
+grant all on table public.contas, public.lembretes, public.envios, public.pagamentos, public.contatos_desconhecidos, public.sistema_auth, public.enquetes to service_role;

@@ -6,10 +6,11 @@
 // Número sem conta recebe um convite pra se cadastrar, no máximo 1 vez por semana por número
 // e com limite por hora no total (responder estranhos demais aumenta o risco de o chip ser marcado como spam).
 import { supabase } from './supabase.js';
-import { enviarTexto } from './whatsapp.js';
-import { abrirConta, abrirLembrete, indice } from './cripto.js';
+import { enviarTexto, enviarEnquete, lerVoto } from './whatsapp.js';
+import { abrirConta, abrirLembrete, indice, decifrar, ctx } from './cripto.js';
 import {
   TIPOS, hojeBR, proximoVencimento, pagamentosDe, chavePago, marcarPago, desfazerPago,
+  OPCOES, guardarEnquete, adiarAviso,
 } from './lembretes.js';
 
 const ESCOLHA_VALE_MIN = 30;
@@ -151,7 +152,11 @@ function filtrarPeloTexto(opcoes, t) {
 async function avisoPeloId(contaId, msgId) {
   const { data } = await supabase
     .from('envios').select('lembrete_id, vencimento').eq('conta_id', contaId).eq('msg_id', msgId).limit(1).maybeSingle();
-  return data || null;
+  if (data) return data;
+  // respondeu "paguei" em cima da enquete
+  const { data: enq } = await supabase
+    .from('enquetes').select('lembrete_id, vencimento').eq('conta_id', contaId).eq('id', msgId).maybeSingle();
+  return enq || null;
 }
 
 async function confirmarPagamento(conta, { lembrete, vencimento }) {
@@ -247,5 +252,58 @@ export async function tratarMensagem({ jid, numero, texto, citadaId }) {
   if (resposta && podeResponder(conta.id)) {
     await enviarTexto(jid, resposta);
     console.log(`Resposta (${intencao}) -> ${conta.id.slice(0, 8)}`);
+  }
+}
+
+// =============== ENQUETES ("botões") ===============
+const horaBR = (d) => d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });
+const emBR = (dataStr, hora) => new Date(`${dataStr}T${hora}:00-03:00`);
+
+// Quando volta o aviso, pra cada opção do "mais tarde". Devolve { quando, texto }.
+function horarioDoAdiamento(chave, agora = new Date()) {
+  const hoje = hojeBR(agora).str, amanha = somaDias(hoje, 1);
+  if (chave === 'h1') return { quando: new Date(agora.getTime() + 3600_000), dia: 'hoje' };
+  if (chave === 'h3') return { quando: new Date(agora.getTime() + 3 * 3600_000), dia: 'hoje' };
+  if (chave === 'noite') {
+    const noite = emBR(hoje, '20:00');
+    return noite.getTime() - agora.getTime() > 20 * 60_000 ? { quando: noite, dia: 'hoje' } : { quando: emBR(amanha, '20:00'), dia: 'amanhã' };
+  }
+  return { quando: emBR(amanha, '09:00'), dia: 'amanhã' };
+}
+
+export async function tratarVoto({ jid, enqueteId, voto }) {
+  const { data: enq } = await supabase.from('enquetes').select('*').eq('id', enqueteId).maybeSingle();
+  if (!enq) return; // enquete que não é nossa (ou muito antiga)
+  const opcoes = OPCOES[enq.tipo];
+  if (!opcoes) return;
+  const nomeEscolhido = lerVoto(voto, { enqueteId, segredo: decifrar(enq.segredo, ctx('enquetes', 'segredo', enq.id)), opcoes: Object.values(opcoes) });
+  if (!nomeEscolhido || nomeEscolhido === enq.resposta) return; // desmarcou, ou o WhatsApp mandou o mesmo voto de novo
+  await supabase.from('enquetes').update({ resposta: nomeEscolhido }).eq('id', enq.id);
+  const escolha = Object.keys(opcoes).find((k) => opcoes[k] === nomeEscolhido);
+
+  const conta = abrirConta((await supabase.from('contas').select('id, nome').eq('id', enq.conta_id).maybeSingle()).data);
+  const lembrete = abrirLembrete((await supabase.from('lembretes').select('*').eq('id', enq.lembrete_id).maybeSingle()).data);
+  if (!conta || !lembrete || !podeResponder(conta.id)) return;
+  const jaPaga = (await pagamentosDe([lembrete.id])).has(chavePago(lembrete.id, enq.vencimento));
+
+  let resposta = null;
+  if (jaPaga) {
+    resposta = `Essa já está anotada como paga: *${lembrete.titulo}* (vencimento ${dataBR(enq.vencimento)}). ✅`;
+  } else if (enq.tipo === 'aviso' && escolha === 'pago') {
+    resposta = await confirmarPagamento(conta, { lembrete, vencimento: enq.vencimento });
+  } else if (enq.tipo === 'aviso' && escolha === 'adiar') {
+    // pergunta quando, com outra enquete
+    const enquete = await enviarEnquete(jid, { pergunta: `Quando quer que eu te lembre de novo de ${lembrete.titulo}?`, opcoes: Object.values(OPCOES.adiar) });
+    await guardarEnquete({ ...enquete, tipo: 'adiar', contaId: conta.id, lembreteId: lembrete.id, vencimento: enq.vencimento });
+    console.log(`Voto (mais tarde) -> ${conta.id.slice(0, 8)}`);
+    return;
+  } else if (enq.tipo === 'adiar') {
+    const { quando, dia } = horarioDoAdiamento(escolha);
+    await adiarAviso({ lembrete, vencimento: enq.vencimento, quando });
+    resposta = `⏰ Combinado! Te lembro de novo ${dia} às ${horaBR(quando)}.\n\n_Se pagar antes, é só tocar em "Já paguei" ou responder *paguei*._`;
+  }
+  if (resposta) {
+    await enviarTexto(jid, resposta);
+    console.log(`Voto (${escolha}) -> ${conta.id.slice(0, 8)}`);
   }
 }

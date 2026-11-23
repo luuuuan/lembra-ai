@@ -260,6 +260,11 @@
   .aviso-ia:empty { display:none; }
   .previa { margin-top:16px; background:#e7ded3; border-radius:12px; padding:14px; }
   .previa .rotulo { font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:#6b5e4f; margin-bottom:8px; }
+  .enq-titulo { font-weight:600; }
+  .enq { margin-top:8px; white-space:normal; }
+  .enq-sub { font-size:12px; color:#667781; margin-bottom:6px; }
+  .enq-op { display:flex; align-items:center; gap:10px; padding:8px 2px; border-top:1px solid #e9edef; font-size:14px; }
+  .enq-bola { width:18px; height:18px; border-radius:50%; border:2px solid #8696a0; flex:none; }
   .bolha { background:var(--card); border-radius:0 10px 10px 10px; padding:9px 11px 18px; font-size:14px; line-height:1.45; max-width:92%; position:relative; white-space:pre-wrap; word-break:break-word; box-shadow:0 1px 1px rgba(0,0,0,.08); transition:opacity .2s; }
   .bolha .hora { position:absolute; right:9px; bottom:4px; font-size:10px; color:#667781; }
   .bolha.carregando { opacity:.55; }
@@ -361,6 +366,7 @@
   html[data-tema="escuro"] dialog::backdrop { background:rgba(0,0,0,.6); }
   html[data-tema="escuro"] .previa { background:#0b141a; }
   html[data-tema="escuro"] .bolha { background:#202c33; color:#e9edef; }
+  html[data-tema="escuro"] .enq-op { border-color:#3b4a54; } html[data-tema="escuro"] .enq-sub { color:#8696a0; }
   html[data-tema="escuro"] .bolha .hora { color:#8696a0; }
   html[data-tema="escuro"] .painel-ia { background:rgba(124,58,237,.1); border-color:rgba(167,139,250,.3); }
   html[data-tema="escuro"] .sugestao { border-color:rgba(167,139,250,.3); }
@@ -518,7 +524,7 @@
       <h2>Meus lembretes</h2>
       <button type="button" class="primario" id="btnNovo"><svg class="ic"><use href="#i-mais"/></svg> Novo lembrete</button>
     </div>
-    <div class="dica-paguei"><svg class="ic"><use href="#i-conversa"/></svg><span>Quando pagar uma conta, é só responder <b>paguei</b> no aviso do WhatsApp — eu paro de lembrar até o próximo vencimento.</span></div>
+    <div class="dica-paguei"><svg class="ic"><use href="#i-conversa"/></svg><span>O aviso chega no WhatsApp com opções: toque em <b>Já paguei</b> e eu paro de lembrar até o próximo vencimento, ou em <b>Me lembra mais tarde</b> pra eu avisar de novo na hora que você escolher.</span></div>
     <div id="faixaPlano"></div>
     <div id="lista"></div>
 
@@ -1260,9 +1266,11 @@ function atualizarPrevia() {
   previaTimer = setTimeout(async () => {
     const hora = ($('edHorario').value || '09:00').slice(0, 5);
     try {
-      const { texto } = await api('/api/lembretes/previa', { method: 'POST', body: dadosDoEditor() });
-      // negrito do WhatsApp (*texto*) aparece em negrito na prévia
-      $('bolha').innerHTML = negrito(texto) + `<span class="hora">${hora}</span>`;
+      const { texto, enquete } = await api('/api/lembretes/previa', { method: 'POST', body: dadosDoEditor() });
+      // o aviso chega como enquete: a pergunta é o texto (sem negrito) e as opções aparecem embaixo
+      const corpo = enquete ? `<b class="enq-titulo">${esc(texto.replace(/[*_~]/g, ''))}</b>` : negrito(texto);
+      const opcoes = enquete ? `<div class="enq"><div class="enq-sub">Selecione uma opção</div>${enquete.map((o) => `<div class="enq-op"><span class="enq-bola"></span>${esc(o)}</div>`).join('')}</div>` : '';
+      $('bolha').innerHTML = corpo + opcoes + `<span class="hora">${hora}</span>`;
     } catch (e) {
       $('bolha').innerHTML = `<span style="color:var(--cinza)">${esc(e.message)}</span><span class="hora">${hora}</span>`;
     }

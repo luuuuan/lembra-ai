@@ -87,6 +87,19 @@ async function migrarDesconhecidos() {
   return n;
 }
 
+// Segredos das enquetes (só regrava quando troca de chave; já nascem cifrados)
+async function migrarEnquetes() {
+  let n = 0;
+  for (const linha of await todas('enquetes', 'id, segredo')) {
+    if (!precisa(linha.segredo)) continue;
+    const contexto = ctx('enquetes', 'segredo', linha.id);
+    const { error } = await supabase.from('enquetes').update({ segredo: cifrar(decifrar(linha.segredo, contexto), contexto) }).eq('id', linha.id);
+    if (error) throw error;
+    n++;
+  }
+  return n;
+}
+
 // Sessão do WhatsApp do sistema
 async function migrarSessao() {
   let n = 0;
@@ -109,6 +122,7 @@ export async function migrarCriptografia() {
     avisos: await migrarEnvios(),
     desconhecidos: await migrarDesconhecidos(),
     sessao: await migrarSessao(),
+    enquetes: await migrarEnquetes(),
   };
   const total = Object.values(r).reduce((a, b) => a + b, 0);
   if (total) console.log(`Criptografia: ${Object.entries(r).filter(([, v]) => v).map(([k, v]) => `${v} ${k}`).join(', ')} cifrado(s) agora.`);
