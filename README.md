@@ -35,6 +35,25 @@ O sistema avisa no WhatsApp dela antes de vencer, **pelo número do sistema** (o
    - O link usa o endereço do Render automaticamente. Se usar um domínio próprio, coloque em `SITE_URL`.
    - Mensagem que o sistema não entende recebe a ajuda no máximo 1 vez a cada 6h. E nunca são mais de 20 respostas por hora pra mesma pessoa, pra não entrar em loop com outro robô.
 
+## Planos
+
+| | Grátis | Premium |
+|---|---|---|
+| Lembretes | até 3 | ilimitados |
+| Avisos por lembrete | 1 | vários |
+| Mensagem personalizada + IA | — | ✓ |
+| Ícone e cor | — | ✓ |
+| "paguei" pelo WhatsApp, histórico | ✓ | ✓ |
+
+- **Preços:** ficam nas variáveis `PRECO_MENSAL` e `PRECO_ANUAL` (padrão R$ 9,90 e R$ 79,90). O site e o painel usam os mesmos valores.
+- **Pagamento:** coloque o link de assinatura (do Asaas, por exemplo) em `PREMIUM_LINK`. O botão "Assinar o Premium" abre esse link, com `?periodo=mensal` ou `?periodo=anual` no final. Sem o link, a tela avisa que o pagamento online chega em breve.
+- **Liberar o Premium:** na janela do admin (**Número do sistema → Planos das contas**), busque o e-mail e escolha "+30 dias", "+1 ano", "sem prazo" ou "Voltar pro Grátis". Renovar soma a partir do fim do período que ainda está valendo.
+- **Quando o Premium acaba:** nada é apagado. Funcionam só os 3 lembretes mais antigos, com 1 aviso cada (o mais perto do vencimento) e mensagem padrão. Assinando de novo, tudo volta como era. As contas Premium aparecem com o cadeado e o botão "Liberar com Premium" nos lembretes parados.
+
+## Página de apresentação
+
+Quem abre o site sem estar logado vê a página de apresentação (`public/lp.html`), com como funciona, recursos, planos e dúvidas. Quem está logado vai direto pro painel. Os botões levam pra `/login` e `/login#cadastro`.
+
 ## Segurança e detalhes de uso
 
 - **Login:** 5 senhas erradas na mesma conta travam o login dela por 15 minutos. 20 erros vindos do mesmo IP (tentando vários e-mails) também travam por 15 minutos. Cada erro ainda demora meio segundo a mais pra responder, o que deixa o chute de senha bem lento.

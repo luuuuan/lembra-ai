@@ -3,6 +3,7 @@
 import cron from 'node-cron';
 import { supabase } from './supabase.js';
 import { online, enviarTexto } from './whatsapp.js';
+import { situacaoDasContas, noPlano } from './planos.js';
 
 const FUSO = '-03:00';
 const HORIZONTE_DIAS = 45; // gera os avisos dos próximos 45 dias
@@ -138,7 +139,15 @@ async function gravarAvisos(linhas) {
 export async function regenerar(lembrete) {
   const { error } = await supabase.from('envios').delete().eq('lembrete_id', lembrete.id).eq('status', 'pendente');
   if (error) throw error;
-  return gravarAvisos(avisosPrevistos(lembrete, new Date(), await pagamentosDe([lembrete.id])));
+  const situacao = (await situacaoDasContas([lembrete.conta_id])).get(lembrete.conta_id);
+  return gravarAvisos(avisosPrevistos(noPlano(lembrete, situacao), new Date(), await pagamentosDe([lembrete.id])));
+}
+
+// Depois de mudar o plano de uma conta: refaz os avisos de todos os lembretes dela
+export async function regenerarConta(contaId) {
+  const { data, error } = await supabase.from('lembretes').select('*').eq('conta_id', contaId);
+  if (error) throw error;
+  for (const l of data || []) await regenerar(l);
 }
 
 // De tempos em tempos: garante que os avisos dos próximos meses existam
@@ -146,7 +155,8 @@ export async function gerarTodos() {
   const { data, error } = await supabase.from('lembretes').select('*').eq('ativo', true).limit(10000);
   if (error) throw error;
   const pagos = await pagamentosDe((data || []).map((l) => l.id));
-  return gravarAvisos((data || []).flatMap((l) => avisosPrevistos(l, new Date(), pagos)));
+  const situacoes = await situacaoDasContas((data || []).map((l) => l.conta_id));
+  return gravarAvisos((data || []).flatMap((l) => avisosPrevistos(noPlano(l, situacoes.get(l.conta_id)), new Date(), pagos)));
 }
 
 // ---------- pagamento ----------
@@ -202,7 +212,8 @@ export async function dispararPendentes() {
       supabase.from('lembretes').select('*').in('id', idsLembretes),
       supabase.from('contas').select('id, nome, telefone_jid, telefone_verificado_em').in('id', idsContas),
     ]);
-    const lembretePor = new Map((lembretes || []).map((l) => [l.id, l]));
+    const situacoes = await situacaoDasContas(idsContas);
+    const lembretePor = new Map((lembretes || []).map((l) => [l.id, noPlano(l, situacoes.get(l.conta_id))]));
     const contaPor = new Map((contas || []).map((c) => [c.id, c]));
 
     for (const envio of envios.sort((x, y) => x.enviar_em.localeCompare(y.enviar_em))) {
@@ -215,7 +226,13 @@ export async function dispararPendentes() {
         continue;
       }
       if (!lembrete || !lembrete.ativo) {
-        await marcar(envio.id, { status: 'expirado', erro: 'Lembrete pausado ou apagado' });
+        const motivo = lembrete && situacoes.get(lembrete.conta_id)?.premium === false
+          ? 'Plano grátis: só os 3 primeiros lembretes funcionam' : 'Lembrete pausado ou apagado';
+        await marcar(envio.id, { status: 'expirado', erro: motivo });
+        continue;
+      }
+      if (!lembrete.avisos.includes(envio.dias_antes)) { // plano grátis: só 1 aviso por lembrete
+        await marcar(envio.id, { status: 'cancelado', erro: 'Plano grátis: só 1 aviso por lembrete' });
         continue;
       }
       if (!conta?.telefone_verificado_em || !conta.telefone_jid) {

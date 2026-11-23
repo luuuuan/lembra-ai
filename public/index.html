@@ -27,7 +27,7 @@
   .btn-admin { display:inline-flex; align-items:center; gap:5px; background:#fff; border:1px solid var(--borda); padding:6px 10px; font-size:13px; }
   .conta { position:relative; }
   .avatar { width:34px; height:34px; border-radius:50%; background:var(--verde); color:#fff; font-weight:600; }
-  .menu-conta { position:absolute; right:0; top:42px; min-width:240px; background:#fff; border:1px solid var(--borda); border-radius:12px; padding:14px; box-shadow:0 12px 30px rgba(0,0,0,.12); display:flex; flex-direction:column; gap:3px; animation:abre .18s ease-out; transform-origin:top right; }
+  .menu-conta { position:absolute; right:0; top:42px; min-width:270px; background:#fff; border:1px solid var(--borda); border-radius:12px; padding:14px; box-shadow:0 12px 30px rgba(0,0,0,.12); display:flex; flex-direction:column; gap:3px; animation:abre .18s ease-out; transform-origin:top right; }
   .menu-conta span { font-size:13px; color:var(--cinza); word-break:break-all; }
   .menu-conta .linha-tel { margin:8px 0 10px; font-size:13px; }
   .menu-conta button { display:flex; align-items:center; justify-content:center; gap:6px; background:#fff; border:1px solid var(--borda); padding:8px; font-size:13px; }
@@ -98,6 +98,47 @@
   .cores button:hover { transform:scale(1.1); }
   .cores button.on { box-shadow:0 0 0 2px var(--texto); }
   .seletor .rodape-seletor { display:flex; justify-content:space-between; align-items:center; margin-top:10px; font-size:12px; color:var(--cinza); }
+
+  /* planos */
+  .plano-menu { display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:13px; background:var(--fundo); border-radius:8px; padding:8px 10px; margin:2px 0 8px; }
+  .plano-menu b { display:flex; align-items:center; gap:5px; }
+  .selo-premium { display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:600; padding:2px 8px; border-radius:999px; background:linear-gradient(135deg,#fde68a,#fbbf24); color:#78350f; }
+  .faixa-plano { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; font-size:13px; background:#fffbeb; border:1px solid #fde68a; color:#78350f; border-radius:10px; padding:10px 12px; margin-bottom:12px; }
+  .faixa-plano .barra { flex:1; min-width:120px; max-width:200px; height:6px; border-radius:99px; background:#fde68a; overflow:hidden; }
+  .faixa-plano .barra span { display:block; height:100%; background:#d97706; border-radius:inherit; transition:width .4s; }
+  .btn-premium { display:inline-flex; align-items:center; gap:6px; background:linear-gradient(135deg,#f59e0b,#d97706); color:#fff; padding:7px 12px; font-size:13px; font-weight:500; border-radius:999px; box-shadow:0 4px 12px rgba(217,119,6,.25); }
+  .btn-premium:hover { filter:brightness(1.05); }
+  .trava { display:inline-flex; align-items:center; gap:3px; font-size:11px; color:#b45309; }
+  .trava .ic { width:12px; height:12px; }
+  .lembrete.travado { opacity:.55; }
+  .nota-plano { font-size:12px; color:#b45309; margin-top:6px; display:flex; align-items:center; gap:5px; }
+  .nota-plano button { background:none; padding:0; color:#b45309; text-decoration:underline; font-size:12px; }
+
+  #premium { width:min(460px, 95vw); }
+  #premium .topo-premium { margin:-22px -22px 16px; padding:26px 22px 20px; text-align:center; color:#fff; border-radius:16px 16px 0 0;
+    background:radial-gradient(400px 160px at 50% 0%, rgba(255,255,255,.25), transparent 70%), linear-gradient(135deg,#f59e0b,#b45309); }
+  #premium .topo-premium .coroa { width:54px; height:54px; border-radius:16px; background:rgba(255,255,255,.2); display:grid; place-items:center; margin:0 auto 10px; animation:balanca 2.6s ease-in-out infinite; }
+  #premium .topo-premium .coroa .ic { width:28px; height:28px; }
+  @keyframes balanca { 0%,100% { transform:rotate(-6deg); } 50% { transform:rotate(6deg) translateY(-2px); } }
+  #premium .topo-premium h2 { color:#fff; font-size:20px; }
+  #premium .topo-premium p { margin:4px 0 0; font-size:13px; opacity:.92; }
+  .motivo { font-size:13px; background:#fffbeb; color:#78350f; border-radius:8px; padding:9px 11px; margin-bottom:12px; }
+  .beneficios { list-style:none; margin:0; padding:0; display:grid; gap:9px; }
+  .beneficios li { display:flex; gap:9px; font-size:14px; align-items:flex-start; }
+  .beneficios .ic { color:var(--verde); width:18px; height:18px; margin-top:1px; }
+  .precos { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:16px; }
+  .preco { border:1.5px solid var(--borda); border-radius:12px; padding:12px; text-align:center; background:#fff; position:relative; transition:border-color .15s, box-shadow .15s; }
+  .preco.on { border-color:#d97706; box-shadow:0 0 0 3px rgba(217,119,6,.15); }
+  .preco b { display:block; font-size:22px; margin:2px 0; }
+  .preco span { font-size:12px; color:var(--cinza); }
+  .preco .eco { position:absolute; top:-9px; left:50%; transform:translateX(-50%); font-size:10px; font-weight:600; background:var(--verde); color:#fff; padding:2px 8px; border-radius:99px; white-space:nowrap; }
+  .assinar { width:100%; margin-top:14px; padding:12px; font-size:15px; font-weight:600; justify-content:center; border-radius:10px; }
+  .sem-link { font-size:13px; color:var(--cinza); text-align:center; margin-top:10px; line-height:1.5; }
+
+  .admin-planos { margin-top:18px; border-top:1px solid var(--borda); padding-top:14px; text-align:left; }
+  .admin-planos h3 { font-size:14px; margin:0 0 8px; }
+  .admin-planos .resultado { font-size:13px; margin-top:10px; background:var(--fundo); border-radius:10px; padding:10px; }
+  .admin-planos .botoes { display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
 
   /* caixas de carregamento */
   .esq { background:linear-gradient(90deg, #eceef1 25%, #f6f7f9 50%, #eceef1 75%); background-size:200% 100%; animation:brilhoEsq 1.2s linear infinite; border-radius:10px; }
@@ -190,7 +231,7 @@
   #admin .qr { width:240px; height:240px; border-radius:12px; border:1px solid var(--borda); }
   .corpo-admin { text-align:center; min-height:180px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding-top:8px; }
   .corpo-admin ol { text-align:left; font-size:13px; color:#374151; margin:0; padding-left:20px; line-height:1.6; }
-  .numeros { display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; margin-top:16px; }
+  .numeros { display:grid; grid-template-columns:repeat(auto-fit, minmax(90px, 1fr)); gap:8px; margin-top:16px; }
   .numeros div { background:var(--fundo); border-radius:10px; padding:10px; text-align:center; }
   .numeros b { display:block; font-size:20px; }
   .numeros span { font-size:11px; color:var(--cinza); }
@@ -257,6 +298,8 @@
   <symbol id="i-presente" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M5 12v9h14v-9M12 8v13"/><path d="M12 8S10.5 3 8 3.5 7.5 8 12 8zM12 8s1.5-5 4-4.5.5 4.5-4 4.5z"/></symbol>
   <symbol id="i-investimento" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 17 6-6 4 4 8-8"/><path d="M14 7h7v7"/></symbol>
   <symbol id="i-paleta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r="1"/><circle cx="17.5" cy="10.5" r="1"/><circle cx="8.5" cy="7.5" r="1"/><circle cx="6.5" cy="12.5" r="1"/><path d="M12 2a10 10 0 0 0 0 20c1 0 1.7-.8 1.7-1.7 0-.4-.2-.8-.4-1.1-.3-.3-.4-.7-.4-1.1 0-.9.8-1.7 1.7-1.7h2A5.6 5.6 0 0 0 22 11c0-5-4.5-9-10-9z"/></symbol>
+  <symbol id="i-coroa" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l4.5 4L12 4l4.5 7L21 7l-2 11H5z"/><path d="M5 21h14"/></symbol>
+  <symbol id="i-cadeado" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
 </svg>
 <header>
   <h1><span class="marca-ic"><svg class="ic"><use href="#i-sino"/></svg></span> <span class="nome-app">Lembra Aí</span></h1>
@@ -269,6 +312,7 @@
         <strong id="contaNome"></strong>
         <span id="contaEmail"></span>
         <div class="linha-tel" id="contaTel"></div>
+        <div class="plano-menu" id="planoMenu"></div>
         <button type="button" id="btnTrocarTel">Trocar meu número</button>
         <button type="button" class="sair" id="btnSair"><svg class="ic"><use href="#i-sair"/></svg> Sair</button>
       </div>
@@ -334,6 +378,7 @@
       <button type="button" class="primario" id="btnNovo"><svg class="ic"><use href="#i-mais"/></svg> Novo lembrete</button>
     </div>
     <div class="dica-paguei"><svg class="ic"><use href="#i-conversa"/></svg><span>Quando pagar uma conta, é só responder <b>paguei</b> no aviso do WhatsApp — eu paro de lembrar até o próximo vencimento.</span></div>
+    <div id="faixaPlano"></div>
     <div id="lista"></div>
 
     <div class="titulo-secao"><h2>Últimos avisos</h2></div>
@@ -392,6 +437,7 @@
 
     <label class="campo">Me avisar</label>
     <div class="chips" id="chipsAvisos"></div>
+    <div class="nota-plano" id="notaAvisos" hidden><svg class="ic"><use href="#i-cadeado"/></svg> No Grátis é 1 aviso por lembrete. <button type="button" data-premium="Vários avisos por lembrete">Ver Premium</button></div>
 
     <label class="campo">Mensagem</label>
     <div class="linha-msg">
@@ -437,7 +483,39 @@
     <p class="sub">É o WhatsApp que manda os lembretes pra todo mundo. Use um chip só pra isso.</p>
     <div class="corpo-admin" id="corpoAdmin"></div>
     <div class="numeros" id="numerosAdmin"></div>
+    <div class="admin-planos">
+      <h3>Planos das contas</h3>
+      <div class="linha-form">
+        <input id="adEmail" type="email" placeholder="e-mail da conta">
+        <button type="button" class="secundario" id="adBuscar">Buscar</button>
+      </div>
+      <div class="resultado" id="adResultado" hidden></div>
+    </div>
     <div class="acoes-modal"><button class="secundario">Fechar</button></div>
+  </form>
+</dialog>
+
+<dialog id="premium">
+  <form method="dialog">
+    <div class="topo-premium">
+      <div class="coroa"><svg class="ic"><use href="#i-coroa"/></svg></div>
+      <h2>Lembra Aí Premium</h2>
+      <p>Nunca mais pague juros por esquecimento.</p>
+    </div>
+    <div class="motivo" id="premiumMotivo" hidden></div>
+    <ul class="beneficios">
+      <li><svg class="ic"><use href="#i-check"/></svg><span><b>Lembretes ilimitados</b>: todas as suas contas, não só 3</span></li>
+      <li><svg class="ic"><use href="#i-check"/></svg><span><b>Vários avisos por conta</b>: 7 dias antes, 3 dias antes e no dia</span></li>
+      <li><svg class="ic"><use href="#i-check"/></svg><span><b>Mensagem do seu jeito</b>, com sugestões criadas por IA</span></li>
+      <li><svg class="ic"><use href="#i-check"/></svg><span><b>Ícone e cor</b> pra cada conta</span></li>
+    </ul>
+    <div class="precos" id="precos">
+      <button type="button" class="preco" data-periodo="mensal"><span>Mensal</span><b id="precoMensal">R$ 9,90</b><span>por mês</span></button>
+      <button type="button" class="preco on" data-periodo="anual"><span class="eco" id="economia">2 meses grátis</span><span>Anual</span><b id="precoAnual">R$ 79,90</b><span id="precoAnualMes">R$ 6,66 por mês</span></button>
+    </div>
+    <button type="button" class="btn-premium assinar" id="btnAssinar"><svg class="ic"><use href="#i-coroa"/></svg> Assinar o Premium</button>
+    <div class="sem-link" id="semLink" hidden>O pagamento online chega em breve. Por enquanto, chame no WhatsApp do Lembra Aí que a gente libera pra você.</div>
+    <div class="acoes-modal" style="margin-top:10px"><button class="secundario">Agora não</button></div>
   </form>
 </dialog>
 
@@ -474,7 +552,11 @@ window.fetch = async (...args) => {
 async function api(url, opcoes = {}) {
   const r = await fetch(url, { headers: { 'Content-Type': 'application/json' }, ...opcoes, body: opcoes.body ? JSON.stringify(opcoes.body) : undefined });
   const j = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(j.erro || 'Algo deu errado');
+  if (!r.ok) {
+    const erro = new Error(j.erro || 'Algo deu errado');
+    if (j.premium) { erro.premium = true; abrirPremium(j.erro); }
+    throw erro;
+  }
   return j;
 }
 
@@ -500,6 +582,99 @@ function textoAvisos(lista, horario) {
 }
 
 const negrito = (t) => esc(t).replace(/\*([^*\n]+)\*/g, '<b>$1</b>'); // *texto* do WhatsApp em negrito
+
+// =============== planos ===============
+let planos = null;
+let periodo = 'anual';
+const reais = (v) => Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+async function carregarPlanos() {
+  try { planos = await api('/api/planos'); } catch { return; }
+  const { mensal, anual } = planos.precos;
+  $('precoMensal').textContent = reais(mensal);
+  $('precoAnual').textContent = reais(anual);
+  $('precoAnualMes').textContent = `${reais(anual / 12)} por mês`;
+  const economia = Math.round((1 - anual / (mensal * 12)) * 100);
+  $('economia').textContent = economia > 0 ? `economize ${economia}%` : 'melhor preço';
+  $('economia').hidden = economia <= 0;
+}
+
+function abrirPremium(motivo = '') {
+  if ($('editor').open) $('editor').close();
+  $('premiumMotivo').hidden = !motivo;
+  $('premiumMotivo').innerHTML = motivo ? `${icone('cadeado')} ${esc(motivo)}` : '';
+  $('semLink').hidden = Boolean(planos?.link_pagamento);
+  $('btnAssinar').hidden = !planos?.link_pagamento;
+  $('premium').showModal();
+}
+$('precos').onclick = (e) => {
+  const b = e.target.closest('[data-periodo]'); if (!b) return;
+  periodo = b.dataset.periodo;
+  $('precos').querySelectorAll('.preco').forEach((x) => x.classList.toggle('on', x === b));
+};
+$('btnAssinar').onclick = () => {
+  if (!planos?.link_pagamento) return;
+  const url = new URL(planos.link_pagamento);
+  url.searchParams.set('periodo', periodo);
+  window.open(url.toString(), '_blank', 'noopener');
+};
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-premium]');
+  if (b) { e.preventDefault(); abrirPremium(b.dataset.premium === '1' ? '' : b.dataset.premium); }
+});
+
+function desenharPlano() {
+  if (usuario.premium) {
+    const ate = usuario.premium_ate ? ` até ${new Date(usuario.premium_ate).toLocaleDateString('pt-BR')}` : '';
+    $('planoMenu').innerHTML = `<b><span class="selo-premium">${icone('coroa')} Premium</span></b><span style="color:var(--cinza)">${ate}</span>`;
+    $('faixaPlano').innerHTML = '';
+  } else {
+    const max = planos?.limite_gratis?.lembretes ?? 3;
+    const usados = Math.min(lembretes.length, max);
+    $('planoMenu').innerHTML = `<b>Plano Grátis</b><button type="button" class="btn-premium" data-premium="1" style="padding:5px 10px;font-size:12px">${icone('coroa')} Premium</button>`;
+    $('faixaPlano').innerHTML = `<div class="faixa-plano">
+      <span>Plano Grátis: <b>${usados} de ${max}</b> lembretes</span>
+      <div class="barra"><span style="width:${(usados / max) * 100}%"></span></div>
+      <button type="button" class="btn-premium" data-premium="1">${icone('coroa')} Conhecer o Premium</button>
+    </div>`;
+  }
+  // cadeadinhos no editor
+  const cadeado = usuario.premium ? '' : ` <span class="trava">${icone('cadeado')}</span>`;
+  $('segMsg').querySelector('[data-v="minha"]').innerHTML = 'Escrever a minha' + cadeado;
+  $('btnIa').innerHTML = `${icone('ia')} Sugerir com IA${cadeado}`;
+  $('btnPersonalizar').innerHTML = `${icone('paleta')} Personalizar ícone e cor${cadeado}`;
+  $('notaAvisos').hidden = usuario.premium;
+}
+
+// =============== admin: planos ===============
+async function buscarContaAdmin() {
+  const email = $('adEmail').value.trim();
+  if (!email) return;
+  const box = $('adResultado'); box.hidden = false; box.textContent = 'Buscando...';
+  try {
+    const c = await api(`/api/admin/conta?email=${encodeURIComponent(email)}`);
+    const status = c.premium
+      ? `<span class="selo-premium">${icone('coroa')} Premium</span> ${c.premium_ate ? 'até ' + new Date(c.premium_ate).toLocaleDateString('pt-BR') : 'sem prazo'}`
+      : '<b>Grátis</b>';
+    box.innerHTML = `<b>${esc(c.nome)}</b> · ${esc(c.email)}<br>${status} · ${c.lembretes} lembrete(s) · número ${c.telefone_verificado_em ? 'confirmado' : 'não confirmado'}
+      <div class="botoes">
+        <button type="button" class="mini" data-plano="premium" data-dias="30">+30 dias Premium</button>
+        <button type="button" class="mini" data-plano="premium" data-dias="365">+1 ano Premium</button>
+        <button type="button" class="mini" data-plano="premium" data-dias="">Premium sem prazo</button>
+        <button type="button" class="mini perigo" data-plano="gratis">Voltar pro Grátis</button>
+      </div>`;
+  } catch (e) { box.textContent = e.message; }
+}
+$('adBuscar').onclick = buscarContaAdmin;
+$('adEmail').onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); buscarContaAdmin(); } };
+$('adResultado').onclick = async (e) => {
+  const b = e.target.closest('[data-plano]'); if (!b) return;
+  try {
+    await api('/api/admin/plano', { method: 'POST', body: { email: $('adEmail').value.trim(), plano: b.dataset.plano, dias: b.dataset.dias || null } });
+    toast(b.dataset.plano === 'premium' ? 'Premium liberado' : 'Conta voltou pro Grátis', false, 'check');
+    buscarContaAdmin(); desenharResumo();
+  } catch (err) { toast(err.message, true); }
+};
 
 // =============== estado ===============
 let usuario = null;
@@ -623,6 +798,7 @@ $('btnCancelarTroca').onclick = () => { trocandoNumero = false; desenharTela(); 
 async function carregarLembretes() {
   try { lembretes = await api('/api/lembretes'); } catch (e) { toast(e.message, true); return; }
   desenharLista();
+  desenharPlano();
 }
 
 function desenharLista() {
@@ -644,25 +820,27 @@ function desenharLista() {
       ? `<div class="faixa-pago">${icone('check')} Pagamento feito (venc. ${fmtDataCurta(l.vencimento_atual)})
           <button type="button" class="link" data-acao="despagar" data-id="${l.id}" data-venc="${l.vencimento_atual}">desfazer</button></div>`
       : '';
-    return `<article class="lembrete ${l.ativo ? '' : 'pausado'}" style="animation-delay:${i * 40}ms">
+    return `<article class="lembrete ${l.ativo ? '' : 'pausado'} ${l.travado ? 'travado' : ''}" style="animation-delay:${i * 40}ms">
       <div class="cab">
         <div class="icone cor-${corDo(l)}">${icone(iconeDo(l))}</div>
         <div style="min-width:0">
           <h3>${esc(l.titulo)}</h3>
           ${l.valor !== null ? `<div class="valor">${fmtValor(l.valor)}</div>` : ''}
         </div>
-        ${l.ativo ? '' : '<span class="tag">pausado</span>'}
+        ${l.travado ? `<span class="tag trava">${icone('cadeado')} Premium</span>` : l.ativo ? '' : '<span class="tag">pausado</span>'}
       </div>
       ${pago}
       <div class="info">
         Vence ${vence}<br>
-        Aviso ${esc(textoAvisos(l.avisos, l.horario))}<br>
-        ${l.ativo && l.proximo_aviso ? `Próximo: <b>${fmtQuando(l.proximo_aviso)}</b>` : l.ativo ? '<span style="color:var(--cinza)">Sem avisos pendentes</span>' : ''}
+        Aviso ${esc(textoAvisos(usuario.premium ? l.avisos : [Math.min(...l.avisos)], l.horario))}${!usuario.premium && l.avisos.length > 1 ? ` <span class="trava" title="Os outros avisos voltam com o Premium">${icone('cadeado')}</span>` : ''}<br>
+        ${l.travado ? `<span class="trava">${icone('cadeado')} Parado: no Grátis só os 3 primeiros lembretes funcionam</span>`
+          : l.ativo && l.proximo_aviso ? `Próximo: <b>${fmtQuando(l.proximo_aviso)}</b>` : l.ativo ? '<span style="color:var(--cinza)">Sem avisos pendentes</span>' : ''}
       </div>
       <div class="acoes">
-        ${l.ativo && !l.atual_pago && l.proximo_vencimento ? `<button type="button" class="mini pagar" data-acao="pagar" data-id="${l.id}">${icone('pago')} Já paguei</button>` : ''}
+        ${l.travado ? `<button type="button" class="mini pagar" data-premium="Com o Premium, todos os seus lembretes funcionam." style="background:#d97706;border-color:#d97706">${icone('coroa')} Liberar com Premium</button>` : ''}
+        ${!l.travado && l.ativo && !l.atual_pago && l.proximo_vencimento ? `<button type="button" class="mini pagar" data-acao="pagar" data-id="${l.id}">${icone('pago')} Já paguei</button>` : ''}
         <button type="button" class="mini" data-acao="editar" data-id="${l.id}" title="Editar">${icone('editar')} Editar</button>
-        <button type="button" class="mini" data-acao="testar" data-id="${l.id}" title="Mandar um teste agora">${icone('enviar')} Testar</button>
+        ${l.travado ? '' : `<button type="button" class="mini" data-acao="testar" data-id="${l.id}" title="Mandar um teste agora">${icone('enviar')} Testar</button>`}
         <button type="button" class="mini" data-acao="pausar" data-id="${l.id}">${icone(l.ativo ? 'pausar' : 'ativar')} ${l.ativo ? 'Pausar' : 'Ativar'}</button>
         <button type="button" class="mini perigo" data-acao="excluir" data-id="${l.id}" title="Excluir">${icone('lixo')}</button>
       </div>
@@ -745,7 +923,10 @@ function desenharIcone(animar = false) {
   $('txtPadrao').textContent = personalizado ? 'Personalizado' : 'Seguindo o padrão do tipo';
   $('btnIconePadrao').hidden = !personalizado;
 }
-$('btnPersonalizar').onclick = () => { $('seletor').hidden = !$('seletor').hidden; };
+$('btnPersonalizar').onclick = () => {
+  if (!usuario.premium) return abrirPremium('Ícone e cor personalizados são do Premium.');
+  $('seletor').hidden = !$('seletor').hidden;
+};
 $('gradeIcones').onclick = (e) => { const b = e.target.closest('[data-icone]'); if (b) { ed.icone = b.dataset.icone; desenharIcone(true); } };
 $('coresIcone').onclick = (e) => { const b = e.target.closest('[data-cor]'); if (b) { ed.cor = b.dataset.cor; desenharIcone(true); } };
 $('btnIconePadrao').onclick = () => { ed.icone = null; ed.cor = null; desenharIcone(true); };
@@ -775,6 +956,7 @@ $('chipsTipo').onclick = (e) => {
 $('chipsAvisos').onclick = (e) => {
   const c = e.target.closest('[data-d]'); if (!c) return;
   const d = Number(c.dataset.d);
+  if (!usuario.premium) { ed.avisos = new Set([d]); marcarChips(); atualizarPrevia(); return; } // grátis: 1 aviso só
   if (ed.avisos.has(d) && ed.avisos.size === 1) return toast('Deixe pelo menos um aviso marcado');
   ed.avisos.has(d) ? ed.avisos.delete(d) : ed.avisos.add(d);
   marcarChips(); atualizarPrevia();
@@ -782,6 +964,7 @@ $('chipsAvisos').onclick = (e) => {
 $('segFreq').onclick = (e) => { if (e.target.dataset.v) { ed.freq = e.target.dataset.v; marcarChips(); atualizarPrevia(); } };
 $('segMsg').onclick = (e) => {
   if (!e.target.dataset.v) return;
+  if (e.target.dataset.v === 'minha' && !usuario.premium) return abrirPremium('Mensagem personalizada é do Premium.');
   ed.msg = e.target.dataset.v; marcarChips(); atualizarPrevia();
   if (ed.msg === 'minha') $('edMensagem').focus();
 };
@@ -841,7 +1024,7 @@ function usarSugestao(texto, botao) {
   $('bolha').animate([{ transform: 'scale(.98)' }, { transform: 'scale(1)' }], { duration: 220, easing: 'ease-out' });
 }
 
-$('btnIa').onclick = pedirSugestoes;
+$('btnIa').onclick = () => (usuario.premium ? pedirSugestoes() : abrirPremium('As sugestões com IA são do Premium.'));
 $('tons').onclick = (e) => {
   const c = e.target.closest('[data-tom]'); if (!c) return;
   tomIa = c.dataset.tom;
@@ -871,7 +1054,8 @@ function abrirEditor(l = null, tipo = 'luz') {
   $('edTitulo').textContent = l ? 'Editar lembrete' : 'Novo lembrete';
   ed.tipo = l?.tipo || tipo;
   ed.freq = l?.frequencia || 'mensal';
-  ed.avisos = new Set(l?.avisos || [3, 0]);
+  ed.avisos = new Set(l?.avisos || (usuario.premium ? [3, 0] : [1]));
+  if (!usuario.premium && ed.avisos.size > 1) ed.avisos = new Set([Math.min(...ed.avisos)]);
   ed.msg = l?.mensagem ? 'minha' : 'padrao';
   ed.icone = l?.icone || null;
   ed.cor = l?.cor || null;
@@ -883,14 +1067,19 @@ function abrirEditor(l = null, tipo = 'luz') {
   $('edData').min = new Date(Date.now() - 3 * 3600_000).toISOString().slice(0, 10);
   $('edHorario').value = (l?.horario || '09:00').slice(0, 5);
   $('edMensagem').value = l?.mensagem || '';
-  $('painelIa').hidden = true; $('sugestoes').innerHTML = ''; $('btnIa').innerHTML = `${icone('ia')} Sugerir com IA`;
+  $('painelIa').hidden = true; $('sugestoes').innerHTML = ''; desenharPlano();
   msg('edMsg', '', '');
   marcarChips();
   desenharIcone();
   $('editor').showModal();
   atualizarPrevia();
 }
-$('btnNovo').onclick = () => abrirEditor();
+$('btnNovo').onclick = () => {
+  if (!usuario.premium && lembretes.length >= (planos?.limite_gratis?.lembretes ?? 3)) {
+    return abrirPremium(`No plano Grátis dá pra ter até ${planos?.limite_gratis?.lembretes ?? 3} lembretes. Com o Premium é ilimitado.`);
+  }
+  abrirEditor();
+};
 $('edFechar').onclick = () => $('editor').close();
 
 $('formLembrete').onsubmit = async (e) => {
@@ -945,7 +1134,7 @@ async function desenharAdmin() {
 async function desenharResumo() {
   try {
     const r = await api('/api/admin/resumo');
-    $('numerosAdmin').innerHTML = [['contas', 'contas'], ['lembretes_ativos', 'lembretes ativos'], ['pendentes', 'avisos na fila'], ['enviados_hoje', 'enviados hoje']]
+    $('numerosAdmin').innerHTML = [['contas', 'contas'], ['premium', 'premium'], ['lembretes_ativos', 'lembretes ativos'], ['pendentes', 'avisos na fila'], ['enviados_hoje', 'enviados hoje']]
       .map(([k, n]) => `<div><b>${r[k]}</b><span>${n}</span></div>`).join('');
   } catch { /* ignora */ }
 }
@@ -970,7 +1159,8 @@ $('btnSair').onclick = async () => { await fetch('/api/logout', { method: 'POST'
   $('contaNome').textContent = usuario.nome;
   $('contaEmail').textContent = usuario.email;
   $('btnAdmin').hidden = !usuario.admin;
-  await carregarSistema();
+  await Promise.all([carregarSistema(), carregarPlanos()]);
+  desenharPlano();
   try { await desenharTela(); } finally { terminarCarregamento(); } // some mesmo se algo falhar
   setInterval(carregarSistema, 20000);
   setInterval(() => { if (!$('secLembretes').hidden) carregarHistorico(); }, 60000);

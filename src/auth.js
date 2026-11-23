@@ -4,6 +4,7 @@ import { scrypt as scryptCb, randomBytes, timingSafeEqual, createHmac, createHas
 import { promisify } from 'node:util';
 import { supabase } from './supabase.js';
 import { criarLimite, recusar } from './limites.js';
+import { ehPremium } from './planos.js';
 
 const scrypt = promisify(scryptCb);
 const COOKIE = 'lembretes_sessao';
@@ -81,11 +82,13 @@ async function buscarUsuario(id) {
   const c = cacheUsuarios.get(id);
   if (c && c.ate > Date.now()) return c.usuario;
   const { data } = await supabase
-    .from('contas').select('id, nome, email, telefone, telefone_verificado_em').eq('id', id).maybeSingle();
+    .from('contas').select('id, nome, email, telefone, telefone_verificado_em, plano, premium_ate').eq('id', id).maybeSingle();
   const usuario = data // nunca expõe hash de senha nem código
     ? {
       id: data.id, nome: data.nome, email: data.email, admin: ehAdmin(data.email),
       telefone: data.telefone_verificado_em ? data.telefone : null,
+      premium: ehPremium(data),
+      premium_ate: ehPremium(data) ? data.premium_ate : null,
     }
     : null;
   if (usuario) cacheUsuarios.set(id, { usuario, ate: Date.now() + 60_000 });

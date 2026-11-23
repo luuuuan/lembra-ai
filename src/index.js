@@ -7,10 +7,11 @@ import path from 'node:path';
 import { supabase } from './supabase.js';
 import * as whatsapp from './whatsapp.js';
 import { sugerirMensagens, iaConfigurada, TONS } from './ia.js';
+import { LIMITE_GRATIS, PRECOS, LINK_PAGAMENTO, situacaoDasContas, ehPremium as ehPremiumAgora } from './planos.js';
 import { tratarMensagem } from './respostas.js';
 import {
   TIPOS, montarTexto, regenerar, gerarTodos, iniciarAgendador, dispararPendentes, destravar,
-  proximoVencimento, hojeBR, pagamentosDe, chavePago, marcarPago, desfazerPago,
+  proximoVencimento, hojeBR, pagamentosDe, chavePago, marcarPago, desfazerPago, regenerarConta,
 } from './lembretes.js';
 import {
   carregarSessao, exigirLoginApi, exigirLoginPagina, exigirAdmin, rotasDeConta, esquecerUsuario,
@@ -31,9 +32,17 @@ app.use(carregarSessao);
 
 // ---- Páginas ----
 app.get('/login', (req, res) => (req.usuario ? res.redirect('/') : res.sendFile(pagina('login.html'))));
-app.get(['/', '/index.html'], exigirLoginPagina, (_req, res) => res.sendFile(pagina('index.html')));
+// Logado vê o painel; quem não está logado vê a página de apresentação
+app.get(['/', '/index.html'], (req, res) => res.sendFile(pagina(req.usuario ? 'index.html' : 'lp.html')));
+app.get('/painel', exigirLoginPagina, (_req, res) => res.sendFile(pagina('index.html')));
 
 rotasDeConta(app);
+
+// Preços e limites (público: a página de apresentação também usa)
+app.get('/api/planos', (_req, res) => res.json({
+  precos: PRECOS, limite_gratis: LIMITE_GRATIS, link_pagamento: LINK_PAGAMENTO,
+}));
+
 app.use('/api', exigirLoginApi);
 
 const erroPadrao = (res, e, status = 500) => res.status(status).json({ erro: e.message || String(e) });
@@ -162,10 +171,21 @@ function validarLembrete(b) {
   return { tipo, titulo, valor, frequencia, dia, data, avisos, horario, mensagem, icone, cor };
 }
 
+// O que o plano grátis não deixa salvar. Devolve a mensagem de erro (ou null se pode).
+function bloqueioDoPlano(usuario, campos) {
+  if (usuario.premium) return null;
+  if (campos.avisos.length > LIMITE_GRATIS.avisos) return 'No plano Grátis é 1 aviso por lembrete. Vários avisos são do Premium.';
+  if (campos.mensagem) return 'Mensagem personalizada é do Premium. No Grátis vai a mensagem padrão.';
+  if (campos.icone || campos.cor) return 'Ícone e cor personalizados são do Premium.';
+  return null;
+}
+const pedirPremium = (res, erro) => res.status(403).json({ erro, premium: true });
+
 // Junta informações úteis pra tela: vencimento atual (pago ou não), próximo em aberto e próximo aviso
 async function enriquecer(lembretes) {
   if (!lembretes.length) return [];
   const pagos = await pagamentosDe(lembretes.map((l) => l.id));
+  const situacoes = await situacaoDasContas(lembretes.map((l) => l.conta_id));
   const { data: proximos } = await supabase
     .from('envios').select('lembrete_id, enviar_em, dias_antes, vencimento')
     .in('lembrete_id', lembretes.map((l) => l.id)).eq('status', 'pendente')
@@ -174,8 +194,10 @@ async function enriquecer(lembretes) {
   for (const e of proximos || []) if (!proximoPor.has(e.lembrete_id)) proximoPor.set(e.lembrete_id, e);
   return lembretes.map((l) => {
     const atual = proximoVencimento(l); // ignorando pagamentos
+    const s = situacoes.get(l.conta_id);
     return {
       ...l,
+      travado: Boolean(s && !s.premium && s.liberados && !s.liberados.has(l.id)), // grátis: além dos 3 primeiros
       vencimento_atual: atual,
       atual_pago: Boolean(atual && pagos.has(chavePago(l.id, atual))),
       proximo_vencimento: proximoVencimento(l, new Date(), pagos), // próximo ainda em aberto
@@ -198,6 +220,14 @@ app.post('/api/lembretes', async (req, res) => {
     if (!req.usuario.telefone) return res.status(403).json({ erro: 'Confirme seu número de WhatsApp antes de criar lembretes' });
     let campos;
     try { campos = validarLembrete(req.body || {}); } catch (e) { return erroPadrao(res, e, 400); }
+    if (!req.usuario.premium) {
+      const { count } = await supabase.from('lembretes').select('id', { count: 'exact', head: true }).eq('conta_id', req.usuario.id);
+      if ((count ?? 0) >= LIMITE_GRATIS.lembretes) {
+        return pedirPremium(res, `No plano Grátis dá pra ter até ${LIMITE_GRATIS.lembretes} lembretes. Com o Premium é ilimitado.`);
+      }
+    }
+    const bloqueio = bloqueioDoPlano(req.usuario, campos);
+    if (bloqueio) return pedirPremium(res, bloqueio);
     const { data, error } = await supabase
       .from('lembretes').insert({ ...campos, conta_id: req.usuario.id }).select().single();
     if (error) throw error;
@@ -214,6 +244,8 @@ app.put('/api/lembretes/:id', async (req, res) => {
     if (!atual) return res.status(404).json({ erro: 'Lembrete não encontrado' });
     let campos;
     try { campos = validarLembrete(req.body || {}); } catch (e) { return erroPadrao(res, e, 400); }
+    const bloqueio = bloqueioDoPlano(req.usuario, campos);
+    if (bloqueio) return pedirPremium(res, bloqueio);
     const { data, error } = await supabase
       .from('lembretes').update({ ...campos, atualizado_em: new Date().toISOString() })
       .eq('id', atual.id).select().single();
@@ -288,6 +320,7 @@ app.post('/api/lembretes/previa', (req, res) => {
 // Sugestões de mensagem com IA (Gemini). Só o tipo e o tom vão pra IA; nada da pessoa.
 app.post('/api/lembretes/sugerir', async (req, res) => {
   try {
+    if (!req.usuario.premium) return pedirPremium(res, 'As sugestões com IA são do Premium.');
     const tipo = String(req.body?.tipo || 'outro');
     const tom = String(req.body?.tom || 'amigavel');
     const temValor = req.body?.valor !== undefined && String(req.body.valor).trim() !== '';
@@ -303,8 +336,9 @@ app.get('/api/ia', (_req, res) => res.json({ configurada: iaConfigurada(), tons:
 app.post('/api/lembretes/:id/testar', async (req, res) => {
   try {
     if (!whatsapp.online()) return res.status(503).json({ erro: 'O sistema está fora do ar agora.' });
-    const { data: lembrete } = await doUsuario(req).maybeSingle();
-    if (!lembrete) return res.status(404).json({ erro: 'Lembrete não encontrado' });
+    const { data: encontrado } = await doUsuario(req).maybeSingle();
+    if (!encontrado) return res.status(404).json({ erro: 'Lembrete não encontrado' });
+    const lembrete = req.usuario.premium ? encontrado : { ...encontrado, mensagem: null }; // grátis: mensagem padrão
     const { data: conta } = await supabase
       .from('contas').select('nome, telefone_jid, telefone_verificado_em').eq('id', req.usuario.id).single();
     if (!conta.telefone_verificado_em) return res.status(400).json({ erro: 'Confirme seu número antes' });
@@ -350,6 +384,40 @@ app.post('/api/admin/whatsapp/desconectar', exigirAdmin, async (_req, res) => {
   res.json({ ok: true });
 });
 
+// Admin: ver e mudar o plano de uma conta pelo e-mail (até o pagamento automático existir)
+app.get('/api/admin/conta', exigirAdmin, async (req, res) => {
+  const email = String(req.query.email || '').trim().toLowerCase();
+  const { data } = await supabase.from('contas').select('id, nome, email, plano, premium_ate, telefone_verificado_em, criado_em').eq('email', email).maybeSingle();
+  if (!data) return res.status(404).json({ erro: 'Nenhuma conta com esse e-mail' });
+  const { count } = await supabase.from('lembretes').select('id', { count: 'exact', head: true }).eq('conta_id', data.id);
+  res.json({ ...data, lembretes: count ?? 0, premium: ehPremiumAgora(data) });
+});
+
+app.post('/api/admin/plano', exigirAdmin, async (req, res) => {
+  try {
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    const plano = req.body?.plano === 'premium' ? 'premium' : 'gratis';
+    const dias = Number(req.body?.dias) || null; // vazio = sem prazo
+    const { data: conta } = await supabase.from('contas').select('id, plano, premium_ate').eq('email', email).maybeSingle();
+    if (!conta) return res.status(404).json({ erro: 'Nenhuma conta com esse e-mail' });
+
+    let premium_ate = null;
+    if (plano === 'premium' && dias) {
+      // renovação soma a partir do fim do período atual, se ainda estiver valendo
+      const base = conta.plano === 'premium' && conta.premium_ate && Date.parse(conta.premium_ate) > Date.now()
+        ? Date.parse(conta.premium_ate) : Date.now();
+      premium_ate = new Date(base + dias * 86_400_000).toISOString();
+    }
+    const { error } = await supabase.from('contas').update({ plano, premium_ate }).eq('id', conta.id);
+    if (error) throw error;
+    esquecerUsuario(conta.id);
+    await regenerarConta(conta.id); // libera ou limita os avisos na hora
+    res.json({ ok: true, plano, premium_ate });
+  } catch (e) {
+    erroPadrao(res, e);
+  }
+});
+
 app.get('/api/admin/resumo', exigirAdmin, async (_req, res) => {
   const contar = async (tabela, filtro = (q) => q) => {
     const { count } = await filtro(supabase.from(tabela).select('id', { count: 'exact', head: true }));
@@ -361,6 +429,7 @@ app.get('/api/admin/resumo', exigirAdmin, async (_req, res) => {
     lembretes_ativos: await contar('lembretes', (q) => q.eq('ativo', true)),
     enviados_hoje: await contar('envios', (q) => q.eq('status', 'enviado').gte('enviado_em', inicioDoDia)),
     pendentes: await contar('envios', (q) => q.eq('status', 'pendente')),
+    premium: await contar('contas', (q) => q.eq('plano', 'premium').or(`premium_ate.is.null,premium_ate.gt.${new Date().toISOString()}`)),
   });
 });
 

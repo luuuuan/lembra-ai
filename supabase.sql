@@ -16,8 +16,14 @@ create table if not exists public.contas (
   codigo_hash            text,          -- código de confirmação (hash), temporário
   codigo_expira          timestamptz,
   codigo_tentativas      int not null default 0,
+  plano                  text not null default 'gratis' check (plano in ('gratis', 'premium')),
+  premium_ate            timestamptz,   -- vazio = premium sem prazo
   criado_em              timestamptz not null default now()
 );
+-- (pra quem já tinha rodado uma versão anterior deste script)
+alter table public.contas add column if not exists plano text not null default 'gratis';
+alter table public.contas add column if not exists premium_ate timestamptz;
+
 create unique index if not exists contas_telefone_unico
   on public.contas (telefone_jid) where telefone_verificado_em is not null;
 

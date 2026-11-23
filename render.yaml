@@ -20,3 +20,9 @@ services:
         sync: false
       - key: GEMINI_API_KEY
         sync: false
+      - key: PRECO_MENSAL
+        value: "9,90"
+      - key: PRECO_ANUAL
+        value: "79,90"
+      - key: PREMIUM_LINK
+        sync: false
