@@ -103,7 +103,8 @@
   .esq { background:linear-gradient(90deg, #eceef1 25%, #f6f7f9 50%, #eceef1 75%); background-size:200% 100%; animation:brilhoEsq 1.2s linear infinite; border-radius:10px; }
   @keyframes brilhoEsq { from { background-position:200% 0; } to { background-position:-200% 0; } }
   #carregando { animation:aparece .3s ease-out; }
-  #carregando.saindo { opacity:0; transition:opacity .25s; }
+  #carregando.saindo { opacity:0; transition:opacity .2s; }
+  main.carregando > section { display:none !important; } /* o conteúdo só aparece quando as caixas saem */
   @keyframes aparece { from { opacity:0; } to { opacity:1; } }
   .esq-card { background:#fff; border:1px solid var(--borda); border-radius:14px; padding:16px; display:flex; flex-direction:column; gap:12px; }
   .conteudo-entra { animation:sobe .35s ease-out; }
@@ -275,7 +276,7 @@
   </div>
 </header>
 
-<main>
+<main class="carregando">
   <div id="carregando" aria-busy="true" aria-label="Carregando">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
       <div class="esq" style="width:170px;height:24px"></div>
@@ -531,9 +532,10 @@ function terminarCarregamento() {
   if (!c) return;
   c.classList.add('saindo');
   setTimeout(() => {
-    c.remove();
-    document.querySelectorAll('main > section:not([hidden])').forEach((s) => s.classList.add('conteudo-entra'));
-  }, 250);
+    c.remove(); // as caixas saem e o conteúdo entra no mesmo lugar, sem empurrar nada
+    document.querySelector('main').classList.remove('carregando');
+    document.querySelectorAll('main > section:not([hidden])').forEach((sec) => sec.classList.add('conteudo-entra'));
+  }, 200);
 }
 
 // =============== confirmar número ===============
@@ -961,7 +963,7 @@ $('btnSair').onclick = async () => { await fetch('/api/logout', { method: 'POST'
 
 // =============== início ===============
 (async function iniciar() {
-  try { usuario = await api('/api/me'); } catch { return; }
+  try { usuario = await api('/api/me'); } catch { return terminarCarregamento(); }
   $('btnConta').classList.remove('esq'); $('btnConta').style.color = '';
   $('selo').classList.remove('esq'); $('selo').style.cssText = '';
   $('btnConta').textContent = (usuario.nome || '?').trim().charAt(0).toUpperCase();
@@ -969,8 +971,7 @@ $('btnSair').onclick = async () => { await fetch('/api/logout', { method: 'POST'
   $('contaEmail').textContent = usuario.email;
   $('btnAdmin').hidden = !usuario.admin;
   await carregarSistema();
-  await desenharTela().catch(() => {});
-  terminarCarregamento();
+  try { await desenharTela(); } finally { terminarCarregamento(); } // some mesmo se algo falhar
   setInterval(carregarSistema, 20000);
   setInterval(() => { if (!$('secLembretes').hidden) carregarHistorico(); }, 60000);
 })();
