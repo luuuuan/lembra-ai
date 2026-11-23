@@ -81,6 +81,8 @@
   .caixas input.cheia { border-color:var(--verde); background:var(--verde-claro); }
   .caixas.erro input { border-color:var(--vermelho); background:#fef2f2; }
   .caixas.erro { animation:treme .4s; }
+  #inTelefone { font-variant-numeric:tabular-nums; letter-spacing:.02em; }
+  #inTelefone.tel-ok { border-color:var(--verde); }
   .caixas.ok input { border-color:var(--verde); background:var(--verde-fundo); color:#fff; transition:background .25s; }
   @keyframes treme { 20%, 60% { transform:translateX(-6px); } 40%, 80% { transform:translateX(6px); } }
   .linha-codigo { display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-top:6px; }
@@ -463,7 +465,7 @@
       <div id="etapaNumero">
         <label class="campo" for="inTelefone">Seu WhatsApp com DDD</label>
         <div class="linha-form">
-          <input id="inTelefone" inputmode="tel" placeholder="45 99999-9999" autocomplete="tel-national">
+          <input id="inTelefone" type="tel" inputmode="tel" placeholder="(45) 99999-9999" autocomplete="tel-national" maxlength="16" aria-describedby="msgConfirmar">
           <button type="button" class="primario" id="btnCodigo">Enviar código</button>
         </div>
       </div>
@@ -861,8 +863,9 @@ function mostrarEtapa(codigo) {
 }
 
 async function pedirCodigo() {
-  const telefone = $('inTelefone').value.replace(/\D/g, '');
-  if (telefone.length < 10) return msg('msgConfirmar', 'Digite o número com DDD');
+  const telefone = digitosTel($('inTelefone').value);
+  if (telefone.length < 10) { $('inTelefone').focus(); return msg('msgConfirmar', 'Digite o número completo com DDD, ex.: (45) 99999-9999'); }
+  if (telefone.length === 11 && telefone[2] !== '9') return msg('msgConfirmar', 'Confira o número: celular com DDD começa com 9 depois do DDD.');
   $('btnCodigo').disabled = true; msg('msgConfirmar', 'Enviando...', '');
   try {
     await api('/api/telefone/codigo', { method: 'POST', body: { telefone } });
@@ -874,7 +877,47 @@ async function pedirCodigo() {
 }
 $('btnCodigo').onclick = pedirCodigo;
 $('btnReenviar').onclick = pedirCodigo;
-$('inTelefone').onkeydown = (e) => { if (e.key === 'Enter') pedirCodigo(); };
+// ----- máscara do telefone: (45) 99999-9999 -----
+function digitosTel(v) {
+  let d = String(v || '').replace(/\D/g, '');
+  if (d.length > 11 && d.startsWith('55')) d = d.slice(2); // colou com +55
+  d = d.replace(/^0+/, ''); // 0 da operadora/DDD
+  return d.slice(0, 11);
+}
+function mascaraTel(d) {
+  if (!d) return '';
+  if (d.length <= 2) return `(${d}`;
+  const ddd = `(${d.slice(0, 2)}) `, resto = d.slice(2);
+  if (resto.length <= 4) return ddd + resto;
+  const corte = d.length === 11 ? 5 : 4; // celular com 9 na frente: 5+4; fixo: 4+4
+  return ddd + resto.slice(0, corte) + '-' + resto.slice(corte);
+}
+function aplicarMascaraTel(campo, apagandoAntes) {
+  const pos = campo.selectionStart ?? campo.value.length;
+  let antes = digitosTel(campo.value.slice(0, pos)).length; // quantos números ficam antes do cursor
+  let d = digitosTel(campo.value);
+  if (apagandoAntes && antes > 0) { d = d.slice(0, antes - 1) + d.slice(antes); antes -= 1; }
+  campo.value = mascaraTel(d);
+  // devolve o cursor pro mesmo número em que ele estava
+  let i = 0, n = 0;
+  while (i < campo.value.length && n < antes) { if (/\d/.test(campo.value[i])) n++; i++; }
+  if (document.activeElement === campo) campo.setSelectionRange(i, i);
+  const completo = d.length === 11 || d.length === 10;
+  campo.classList.toggle('tel-ok', completo);
+  campo.setAttribute('aria-invalid', d.length > 0 && !completo ? 'true' : 'false');
+}
+$('inTelefone').addEventListener('input', (e) => {
+  aplicarMascaraTel(e.target);
+  if ($('msgConfirmar').classList.contains('erro')) msg('msgConfirmar', '', ''); // some o erro assim que a pessoa corrige
+});
+$('inTelefone').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') return pedirCodigo();
+  const c = e.target;
+  // apagar em cima de "(", ")", " " ou "-" apaga o número antes dele
+  if (e.key === 'Backspace' && c.selectionStart === c.selectionEnd && c.selectionStart > 0 && /\D/.test(c.value[c.selectionStart - 1])) {
+    e.preventDefault(); aplicarMascaraTel(c, true);
+  }
+});
 $('btnOutroNumero').onclick = () => { mostrarEtapa(false); msg('msgConfirmar', '', ''); };
 
 // ----- 4 quadradinhos do código -----
