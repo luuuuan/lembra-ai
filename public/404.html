@@ -19,7 +19,7 @@
 </script>
 <title>Página não encontrada — Lembra Aí</title>
 <style>
-  :root { --verde:#1f8f5f; --verde-escuro:#17734c; --verde-claro:#e7f5ee; --cinza:#6b7280; --texto:#111827; --card:#fff; --texto-2:#4b5563; --linha:#e5e7eb; }
+  :root { --verde:#1b8558; --verde-fundo:#1b8558; --verde-escuro:#17734c; --verde-claro:#e7f5ee; --cinza:#6b7280; --texto:#111827; --card:#fff; --texto-2:#4b5563; --linha:#e5e7eb; }
   * { box-sizing:border-box; }
   body {
     margin:0; min-height:100vh; display:grid; place-items:center; padding:24px; overflow:hidden;
@@ -65,7 +65,7 @@
     display:inline-flex; align-items:center; gap:8px; padding:12px 18px; border-radius:10px; font:inherit; font-size:15px; font-weight:500;
     text-decoration:none; cursor:pointer; border:0; transition:background .2s, transform .15s, box-shadow .2s;
   }
-  .principal { background:var(--verde); color:#fff; box-shadow:0 6px 18px rgba(31,143,95,.25); }
+  .principal { background:var(--verde-fundo); color:#fff; box-shadow:0 6px 18px rgba(31,143,95,.25); }
   .principal:hover { background:var(--verde-escuro); transform:translateY(-1px); }
   .secundario { background:var(--card); color:var(--texto); border:1px solid var(--linha) !important; }
   .secundario:hover { transform:translateY(-1px); }
@@ -100,9 +100,10 @@
   .btn-tema .sol { transform:rotate(-90deg) scale(.4); opacity:0; }
   html[data-tema="escuro"] .btn-tema .sol { transform:none; opacity:1; color:#fbbf24; }
   html[data-tema="escuro"] .btn-tema .lua { transform:rotate(90deg) scale(.4); opacity:0; }
-  html[data-tema="escuro"] { --verde:#2fb37a; --verde-escuro:#26976a; --verde-claro:rgba(47,179,122,.18); --cinza:#94a3b8; --texto:#e6edf3; --card:#161d25; --texto-2:#c3cdd7; --linha:#2a3542; }
+  html[data-tema="escuro"] { --verde:#2fb37a; --verde-fundo:#198052; --verde-escuro:#166e47; --verde-claro:rgba(47,179,122,.18); --cinza:#94a3b8; --texto:#e6edf3; --card:#161d25; --texto-2:#c3cdd7; --linha:#2a3542; }
   html[data-tema="escuro"] body { background:radial-gradient(800px 500px at 15% 0%, rgba(47,179,122,.16) 0%, transparent 60%), radial-gradient(700px 500px at 100% 100%, rgba(56,120,200,.14) 0%, transparent 60%), #0e1318; }
-  html[data-tema="escuro"] .papel { box-shadow:0 6px 18px rgba(0,0,0,.4); opacity:.5; }
+  html[data-tema="escuro"] .papel { background:#1e2833; box-shadow:0 6px 18px rgba(0,0,0,.45), inset 0 0 0 1px #2e3a47; opacity:.9; }
+  html[data-tema="escuro"] .papel::before, html[data-tema="escuro"] .papel::after { background:#4a5868; }
 </style>
 </head>
 <body>

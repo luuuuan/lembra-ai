@@ -19,7 +19,7 @@
 </script>
 <title>Entrar — Lembra Aí</title>
 <style>
-  :root { --verde:#1f8f5f; --verde-escuro:#17734c; --verde-claro:#e7f5ee; --cinza:#6b7280; --borda:#e5e7eb; --vermelho:#c0392b; --card:#fff; --texto:#111827; --suave:#f3f4f6; }
+  :root { --verde:#1b8558; --verde-fundo:#1b8558; --verde-escuro:#17734c; --verde-claro:#e7f5ee; --cinza:#6b7280; --borda:#e5e7eb; --vermelho:#c0392b; --card:#fff; --texto:#111827; --suave:#f3f4f6; }
   * { box-sizing:border-box; }
   [hidden] { display:none !important; }
   body {
@@ -70,7 +70,7 @@
   .forca span { display:block; height:100%; width:0; border-radius:inherit; transition:width .3s ease, background .3s ease; }
 
   .botao {
-    width:100%; margin-top:20px; padding:12px; border:0; border-radius:10px; background:var(--verde); color:#fff;
+    width:100%; margin-top:20px; padding:12px; border:0; border-radius:10px; background:var(--verde-fundo); color:#fff;
     font:inherit; font-size:15px; font-weight:500; cursor:pointer; transition:background .2s, transform .1s;
     display:flex; align-items:center; justify-content:center; gap:8px;
   }
@@ -108,7 +108,7 @@
   html[data-tema="escuro"] .btn-tema .sol { transform:none; opacity:1; color:#fbbf24; }
   html[data-tema="escuro"] .btn-tema .lua { transform:rotate(90deg) scale(.4); opacity:0; }
   html[data-tema="escuro"] img.so-escuro { display:block !important; }
-  html[data-tema="escuro"] { --verde:#2fb37a; --verde-escuro:#26976a; --verde-claro:rgba(47,179,122,.15); --cinza:#94a3b8; --borda:#283340; --vermelho:#f87171; --card:#161d25; --texto:#e6edf3; --suave:#212b36; }
+  html[data-tema="escuro"] { --verde:#2fb37a; --verde-fundo:#198052; --verde-escuro:#166e47; --verde-claro:rgba(47,179,122,.15); --cinza:#94a3b8; --borda:#283340; --vermelho:#f87171; --card:#161d25; --texto:#e6edf3; --suave:#212b36; }
   html[data-tema="escuro"] body { background:radial-gradient(900px 500px at 10% -10%, rgba(47,179,122,.16) 0%, transparent 60%), radial-gradient(700px 500px at 110% 110%, rgba(56,120,200,.14) 0%, transparent 60%), #0e1318; }
   html[data-tema="escuro"] .cartao { box-shadow:0 20px 60px rgba(0,0,0,.5); }
   html[data-tema="escuro"] .abas .marcador { background:#2a3542; }
