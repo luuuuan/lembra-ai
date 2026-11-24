@@ -6,7 +6,7 @@
 // Número sem conta recebe um convite pra se cadastrar, no máximo 1 vez por semana por número
 // e com limite por hora no total (responder estranhos demais aumenta o risco de o chip ser marcado como spam).
 import { supabase } from './supabase.js';
-import { enviarTexto, enviarEnquete, lerVoto } from './whatsapp.js';
+import { enviarTexto, enviarEnquete, lerVoto, enviarLista, enviarBotoes, MODO } from './whatsapp.js';
 import { abrirConta, abrirLembrete, indice, decifrar, ctx } from './cripto.js';
 import {
   TIPOS, hojeBR, proximoVencimento, pagamentosDe, chavePago, marcarPago, desfazerPago,
@@ -51,11 +51,21 @@ function podeResponder(contaId) {
   return true;
 }
 
+// Celular brasileiro pode chegar com ou sem o 9 na frente (ex.: 55 45 9 9988-7766 ou 55 45 9988-7766)
+function variantesBR(numero) {
+  const n = String(numero || '');
+  const lista = [n];
+  if (/^55\d{2}9\d{8}$/.test(n)) lista.push(n.slice(0, 4) + n.slice(5));
+  else if (/^55\d{2}[6-9]\d{7}$/.test(n)) lista.push(`${n.slice(0, 4)}9${n.slice(4)}`);
+  return lista;
+}
+const indicesDoNumero = (numero) => variantesBR(numero).map((v) => indice('jid', `${v}@s.whatsapp.net`));
+
 // Conta criada, mas que ainda não digitou o código de confirmação deste número
 async function contaPendentePeloNumero(numero) {
   if (!numero) return null;
   const { data } = await supabase
-    .from('contas').select('id, nome').eq('jid_pendente_indice', indice('jid', `${numero}@s.whatsapp.net`)).limit(1).maybeSingle();
+    .from('contas').select('id, nome').in('jid_pendente_indice', indicesDoNumero(numero)).limit(1).maybeSingle();
   return abrirConta(data) || null;
 }
 
@@ -105,7 +115,7 @@ async function contaPeloNumero(numero) {
   if (!numero) return null;
   const { data } = await supabase
     .from('contas').select('id, nome, telefone_jid, telefone_verificado_em')
-    .eq('telefone_jid_indice', indice('jid', `${numero}@s.whatsapp.net`)).not('telefone_verificado_em', 'is', null).maybeSingle();
+    .in('telefone_jid_indice', indicesDoNumero(numero)).not('telefone_verificado_em', 'is', null).limit(1).maybeSingle();
   return abrirConta(data) || null;
 }
 
@@ -164,7 +174,24 @@ async function confirmarPagamento(conta, { lembrete, vencimento }) {
   const pagos = await pagamentosDe([lembrete.id]);
   const proximo = lembrete.frequencia === 'mensal' ? proximoVencimento(lembrete, new Date(), pagos) : null;
   const depois = proximo ? ` Te aviso de novo no próximo vencimento, dia ${dataBR(proximo)}.` : ' Não vou mais lembrar dessa. 🙌';
-  return `✅ Pagamento anotado: *${lembrete.titulo}*, vencimento ${dataBR(vencimento)}.${depois}\n\n_Se foi engano, responda *desfazer*._`;
+  return { texto: `✅ Pagamento anotado: *${lembrete.titulo}*, vencimento ${dataBR(vencimento)}.${depois}`, lembrete, vencimento };
+}
+
+// Manda uma resposta. Na API oficial, as ações viram botões; no chip, vai a dica de qual palavra responder.
+//   pagamento: { texto, lembrete, vencimento } -> botão "Desfazer"
+//   adiado:    { texto, lembrete, vencimento } -> botões "Já paguei" e "Me lembra mais tarde"
+async function responder(jid, conta, resposta) {
+  if (typeof resposta === 'string') return enviarTexto(jid, resposta);
+  const { tipo, texto, lembrete, vencimento } = resposta;
+  if (MODO !== 'oficial') {
+    const dica = tipo === 'pagamento' ? '_Se foi engano, responda *desfazer*._' : '_Se pagar antes, é só tocar em "Já paguei" ou responder *paguei*._';
+    return enviarTexto(jid, `${texto}\n\n${dica}`);
+  }
+  const botoes = tipo === 'pagamento'
+    ? [{ id: 'desfazer', titulo: OPCOES.pago.desfazer }]
+    : [{ id: 'pago', titulo: 'Já paguei' }, { id: 'adiar', titulo: 'Me lembra mais tarde' }];
+  const id = await enviarBotoes(jid, { texto, botoes });
+  await guardarEnquete({ id, segredo: 'botoes', tipo: tipo === 'pagamento' ? 'pago' : 'aviso', contaId: conta.id, lembreteId: lembrete.id, vencimento });
 }
 
 const AJUDA = [
@@ -191,7 +218,7 @@ export async function tratarMensagem({ jid, numero, texto, citadaId }) {
       const opcao = pendente.opcoes[escolhido - 1];
       if (opcao) {
         escolhasPendentes.delete(conta.id);
-        resposta = await confirmarPagamento(conta, opcao);
+        resposta = { tipo: 'pagamento', ...(await confirmarPagamento(conta, opcao)) };
       } else {
         resposta = `Não entendi 🤔 Responda com um número de 1 a ${pendente.opcoes.length}.`;
       }
@@ -213,7 +240,7 @@ export async function tratarMensagem({ jid, numero, texto, citadaId }) {
     } else if (!opcoes.length) {
       resposta = 'Não achei nenhuma conta em aberto pra marcar como paga. 🤔\n\nSe quiser, confira seus lembretes no site.';
     } else if (opcoes.length === 1) {
-      resposta = await confirmarPagamento(conta, opcoes[0]);
+      resposta = { tipo: 'pagamento', ...(await confirmarPagamento(conta, opcoes[0])) };
     } else {
       const lista = opcoes.slice(0, 9);
       escolhasPendentes.set(conta.id, { opcoes: lista, ate: Date.now() + ESCOLHA_VALE_MIN * 60_000 });
@@ -250,7 +277,7 @@ export async function tratarMensagem({ jid, numero, texto, citadaId }) {
   }
 
   if (resposta && podeResponder(conta.id)) {
-    await enviarTexto(jid, resposta);
+    await responder(jid, conta, resposta);
     console.log(`Resposta (${intencao}) -> ${conta.id.slice(0, 8)}`);
   }
 }
@@ -271,15 +298,40 @@ function horarioDoAdiamento(chave, agora = new Date()) {
   return { quando: emBR(amanha, '09:00'), dia: 'amanhã' };
 }
 
-export async function tratarVoto({ jid, enqueteId, voto }) {
+// Quem tocou tem que ser o dono do aviso (no chip, se não der pra saber o número, a própria cifra do voto garante)
+async function ehDono(enq, numero) {
+  if (!numero) return MODO !== 'oficial';
+  const dono = await contaPeloNumero(numero);
+  return Boolean(dono && dono.id === enq.conta_id);
+}
+
+// Chip (Baileys): toque numa enquete. Lê o voto e executa a escolha.
+export async function tratarVoto({ jid, numero, enqueteId, voto }) {
   const { data: enq } = await supabase.from('enquetes').select('*').eq('id', enqueteId).maybeSingle();
-  if (!enq) return; // enquete que não é nossa (ou muito antiga)
+  if (!enq || !OPCOES[enq.tipo]) return; // enquete que não é nossa (ou muito antiga)
   const opcoes = OPCOES[enq.tipo];
-  if (!opcoes) return;
   const nomeEscolhido = lerVoto(voto, { enqueteId, segredo: decifrar(enq.segredo, ctx('enquetes', 'segredo', enq.id)), opcoes: Object.values(opcoes) });
-  if (!nomeEscolhido || nomeEscolhido === enq.resposta) return; // desmarcou, ou o WhatsApp mandou o mesmo voto de novo
+  if (!nomeEscolhido || !(await ehDono(enq, numero))) return; // desmarcou, ou não é de quem votou
+  await executarEscolha({ jid, enq, escolha: Object.keys(opcoes).find((k) => opcoes[k] === nomeEscolhido) });
+}
+
+// API oficial: toque num botão do aviso ou numa opção da lista. O id da mensagem (context.id) diz qual aviso era.
+const semEmoji = (t) => normalizar(t).replace(/\s+/g, ' ').trim();
+export async function tratarEscolha({ jid, numero, mensagemId, payload, texto }) {
+  if (!mensagemId) return;
+  const { data: enq } = await supabase.from('enquetes').select('*').eq('id', mensagemId).maybeSingle();
+  if (!enq || !OPCOES[enq.tipo] || !(await ehDono(enq, numero))) return;
+  const opcoes = OPCOES[enq.tipo];
+  const chave = String(payload || '').replace(/^adiar:/, '');
+  const escolha = opcoes[chave] ? chave
+    : Object.keys(opcoes).find((k) => semEmoji(opcoes[k]) === semEmoji(texto) || semEmoji(opcoes[k]).endsWith(semEmoji(texto)));
+  if (escolha) await executarEscolha({ jid, enq, escolha });
+}
+
+async function executarEscolha({ jid, enq, escolha }) {
+  const nomeEscolhido = OPCOES[enq.tipo][escolha];
+  if (!escolha || nomeEscolhido === enq.resposta) return; // o WhatsApp mandou a mesma escolha de novo
   await supabase.from('enquetes').update({ resposta: nomeEscolhido }).eq('id', enq.id);
-  const escolha = Object.keys(opcoes).find((k) => opcoes[k] === nomeEscolhido);
 
   const conta = abrirConta((await supabase.from('contas').select('id, nome').eq('id', enq.conta_id).maybeSingle()).data);
   const lembrete = abrirLembrete((await supabase.from('lembretes').select('*').eq('id', enq.lembrete_id).maybeSingle()).data);
@@ -287,23 +339,32 @@ export async function tratarVoto({ jid, enqueteId, voto }) {
   const jaPaga = (await pagamentosDe([lembrete.id])).has(chavePago(lembrete.id, enq.vencimento));
 
   let resposta = null;
-  if (jaPaga) {
+  if (enq.tipo === 'pago') { // botão "Desfazer" depois do pagamento anotado
+    if (!jaPaga) resposta = `*${lembrete.titulo}* (vencimento ${dataBR(enq.vencimento)}) já está em aberto. 👍`;
+    else {
+      await desfazerPago({ lembrete, vencimento: enq.vencimento });
+      resposta = `↩️ Pronto, desfiz. *${lembrete.titulo}* (vencimento ${dataBR(enq.vencimento)}) voltou a ficar em aberto, e os avisos que faltam vão sair normalmente.`;
+    }
+  } else if (jaPaga) {
     resposta = `Essa já está anotada como paga: *${lembrete.titulo}* (vencimento ${dataBR(enq.vencimento)}). ✅`;
   } else if (enq.tipo === 'aviso' && escolha === 'pago') {
-    resposta = await confirmarPagamento(conta, { lembrete, vencimento: enq.vencimento });
+    resposta = { tipo: 'pagamento', ...(await confirmarPagamento(conta, { lembrete, vencimento: enq.vencimento })) };
   } else if (enq.tipo === 'aviso' && escolha === 'adiar') {
-    // pergunta quando, com outra enquete
-    const enquete = await enviarEnquete(jid, { pergunta: `Quando quer que eu te lembre de novo de ${lembrete.titulo}?`, opcoes: Object.values(OPCOES.adiar) });
-    await guardarEnquete({ ...enquete, tipo: 'adiar', contaId: conta.id, lembreteId: lembrete.id, vencimento: enq.vencimento });
-    console.log(`Voto (mais tarde) -> ${conta.id.slice(0, 8)}`);
+    // pergunta quando: enquete no chip, lista de opções na API oficial
+    const pergunta = `Quando quer que eu te lembre de novo de ${lembrete.titulo}?`;
+    const enviada = MODO === 'oficial'
+      ? { id: await enviarLista(jid, { texto: pergunta, botao: 'Escolher horário', opcoes: Object.entries(OPCOES.adiar).map(([k, v]) => ({ id: `adiar:${k}`, titulo: v })) }), segredo: 'botoes' }
+      : await enviarEnquete(jid, { pergunta, opcoes: Object.values(OPCOES.adiar) });
+    await guardarEnquete({ ...enviada, tipo: 'adiar', contaId: conta.id, lembreteId: lembrete.id, vencimento: enq.vencimento });
+    console.log(`Escolha (mais tarde) -> ${conta.id.slice(0, 8)}`);
     return;
   } else if (enq.tipo === 'adiar') {
     const { quando, dia } = horarioDoAdiamento(escolha);
     await adiarAviso({ lembrete, vencimento: enq.vencimento, quando });
-    resposta = `⏰ Combinado! Te lembro de novo ${dia} às ${horaBR(quando)}.\n\n_Se pagar antes, é só tocar em "Já paguei" ou responder *paguei*._`;
+    resposta = { tipo: 'adiado', texto: `⏰ Combinado! Te lembro de novo ${dia} às ${horaBR(quando)}.`, lembrete, vencimento: enq.vencimento };
   }
   if (resposta) {
-    await enviarTexto(jid, resposta);
-    console.log(`Voto (${escolha}) -> ${conta.id.slice(0, 8)}`);
+    await responder(jid, conta, resposta);
+    console.log(`Escolha (${escolha}) -> ${conta.id.slice(0, 8)}`);
   }
 }

@@ -136,7 +136,7 @@
   .seletor .rodape-seletor { display:flex; justify-content:space-between; align-items:center; margin-top:10px; font-size:12px; color:var(--cinza); }
 
   /* planos */
-  .plano-menu { display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:13px; background:var(--fundo); border-radius:8px; padding:8px 10px; margin:2px 0 8px; }
+  .plano-menu { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px; font-size:13px; background:var(--fundo); border-radius:8px; padding:8px 10px; margin:2px 0 8px; }
   .plano-menu b { display:flex; align-items:center; gap:5px; }
   .selo-premium { display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:600; padding:2px 8px; border-radius:999px; background:linear-gradient(135deg,#fde68a,#fbbf24); color:#78350f; }
   .faixa-plano { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; font-size:13px; background:var(--card)beb; border:1px solid #fde68a; color:#78350f; border-radius:10px; padding:10px 12px; margin-bottom:12px; }
@@ -170,6 +170,17 @@
   .preco .eco { position:absolute; top:-9px; left:50%; transform:translateX(-50%); font-size:10px; font-weight:600; background:var(--verde-fundo); color:#fff; padding:2px 8px; border-radius:99px; white-space:nowrap; }
   .assinar { width:100%; margin-top:14px; padding:12px; font-size:15px; font-weight:600; justify-content:center; border-radius:10px; }
   .sem-link { font-size:13px; color:var(--cinza); text-align:center; margin-top:10px; line-height:1.5; }
+  .passo-doc { margin-top:14px; text-align:left; }
+  .passo-doc input { width:100%; }
+  .passo-doc small { display:block; font-size:12px; color:var(--cinza); margin-top:6px; line-height:1.45; }
+  .formas-pag { font-size:12px; color:var(--cinza); text-align:center; margin-top:8px; }
+  .assinatura-menu { flex-basis:100%; word-break:normal; overflow-wrap:normal; display:flex; flex-wrap:wrap; align-items:center; gap:4px 12px; font-size:12px; color:var(--cinza); margin-top:6px; padding-top:8px; border-top:1px solid var(--borda); }
+  .assinatura-menu span { flex-basis:100%; }
+  .menu-conta .assinatura-menu button, .menu-conta .assinatura-menu a { background:none; border:none; padding:0; margin:0; font-size:12px; color:var(--verde); text-decoration:underline; text-align:left; width:auto; display:inline; box-shadow:none; }
+  .menu-conta .assinatura-menu .cancelar { color:var(--cinza); }
+  .faixa-fatura { display:flex; align-items:center; gap:10px; flex-wrap:wrap; background:#fef3c7; color:#78350f; border-radius:10px; padding:10px 12px; font-size:13px; margin-bottom:12px; }
+  .faixa-fatura a { margin-left:auto; color:#fff; background:#d97706; padding:6px 12px; border-radius:999px; font-weight:600; text-decoration:none; }
+  html[data-tema="escuro"] .faixa-fatura { background:#3a2a0c; color:#fde68a; }
 
   .admin-planos { margin-top:18px; border-top:1px solid var(--borda); padding-top:14px; text-align:left; }
   .admin-planos h3 { font-size:14px; margin:0 0 8px; }
@@ -261,6 +272,10 @@
   .previa { margin-top:16px; background:#e7ded3; border-radius:12px; padding:14px; }
   .previa .rotulo { font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:#6b5e4f; margin-bottom:8px; }
   .enq-titulo { font-weight:600; }
+  .botoes-previa { display:grid; gap:4px; max-width:92%; margin-top:4px; }
+  .botoes-previa:empty { display:none; }
+  .botoes-previa div { background:var(--card); border-radius:10px; text-align:center; padding:9px; font-size:14px; font-weight:500; color:#027eb5; box-shadow:0 1px 1px rgba(0,0,0,.08); }
+  html[data-tema="escuro"] .botoes-previa div { background:#202c33; color:#53bdeb; }
   .enq { margin-top:8px; white-space:normal; }
   .enq-sub { font-size:12px; color:#667781; margin-bottom:6px; }
   .enq-op { display:flex; align-items:center; gap:10px; padding:8px 2px; border-top:1px solid #e9edef; font-size:14px; }
@@ -634,6 +649,7 @@
     <div class="previa">
       <div class="rotulo">Como vai chegar</div>
       <div class="bolha" id="bolha">...<span class="hora">09:00</span></div>
+      <div class="botoes-previa" id="botoesPrevia"></div>
     </div>
 
     <div class="acoes-modal">
@@ -668,7 +684,7 @@
     <div class="ic-perigo"><svg class="ic"><use href="#i-lixo"/></svg></div>
     <h2>Excluir minha conta</h2>
     <p class="texto-excluir">Isso apaga sua conta, todos os lembretes, o histórico de avisos e os pagamentos marcados. Os avisos param na hora. <b>Não dá pra desfazer.</b></p>
-    <p class="texto-excluir" id="excluirPremium" hidden>Você tem o Premium ativo. Se quiser pedir reembolso, fale com a gente <b>antes</b> de excluir.</p>
+    <p class="texto-excluir" id="excluirPremium" hidden>Você tem o Premium ativo. A assinatura é cancelada junto (sem novas cobranças). Se quiser pedir reembolso, fale com a gente <b>antes</b> de excluir.</p>
     <p class="texto-excluir">Quer guardar uma cópia antes? <a href="/api/conta/dados" download>Baixar meus dados</a></p>
     <label class="campo" for="exSenha">Digite sua senha pra confirmar</label>
     <input type="password" id="exSenha" autocomplete="current-password">
@@ -698,9 +714,29 @@
       <button type="button" class="preco" data-periodo="mensal"><span>Mensal</span><b id="precoMensal">R$ 9,90</b><span>por mês</span></button>
       <button type="button" class="preco on" data-periodo="anual"><span class="eco" id="economia">2 meses grátis</span><span>Anual</span><b id="precoAnual">R$ 79,90</b><span id="precoAnualMes">R$ 6,66 por mês</span></button>
     </div>
+    <div class="passo-doc" id="passoDoc" hidden>
+      <label class="campo" for="docAssinar">CPF ou CNPJ de quem vai pagar</label>
+      <input id="docAssinar" inputmode="numeric" autocomplete="off" placeholder="000.000.000-00" maxlength="18">
+      <small>O Asaas, que processa o pagamento, pede esse número pra emitir a cobrança. Ele vai direto pra lá: o Lembra Aí não guarda.</small>
+    </div>
+    <div class="msg" id="msgAssinar"></div>
     <button type="button" class="btn-premium assinar" id="btnAssinar"><svg class="ic"><use href="#i-coroa"/></svg> Assinar o Premium</button>
+    <div class="formas-pag" id="formasPag" hidden>Pix, boleto ou cartão · Cancele quando quiser</div>
     <div class="sem-link" id="semLink" hidden>O pagamento online chega em breve. Por enquanto, chame no WhatsApp do Lembra Aí que a gente libera pra você.</div>
     <div class="acoes-modal" style="margin-top:10px"><button class="secundario">Agora não</button></div>
+  </form>
+</dialog>
+
+<dialog id="dlgCancelarAss">
+  <form method="dialog">
+    <div class="ic-perigo"><svg class="ic"><use href="#i-coroa"/></svg></div>
+    <h2>Cancelar a assinatura?</h2>
+    <p class="texto-excluir" id="cancelarTexto">As próximas cobranças param. O Premium continua valendo até o fim do período que você já pagou.</p>
+    <div class="msg" id="msgCancelarAss"></div>
+    <div class="acoes-modal">
+      <button class="secundario">Manter o Premium</button>
+      <button type="button" class="btn-perigo" id="btnConfirmaCancelar">Cancelar assinatura</button>
+    </div>
   </form>
 </dialog>
 
@@ -789,21 +825,120 @@ function abrirPremium(motivo = '') {
   if ($('editor').open) $('editor').close();
   $('premiumMotivo').hidden = !motivo;
   $('premiumMotivo').innerHTML = motivo ? `${icone('cadeado')} ${esc(motivo)}` : '';
-  $('semLink').hidden = Boolean(planos?.link_pagamento);
-  $('btnAssinar').hidden = !planos?.link_pagamento;
+  const online = Boolean(planos?.pagamento_online);
+  $('semLink').hidden = online || Boolean(planos?.link_pagamento);
+  $('btnAssinar').hidden = !online && !planos?.link_pagamento;
+  $('formasPag').hidden = !online;
+  $('passoDoc').hidden = true; msg('msgAssinar', '', '');
+  if (assinatura?.ativa && assinatura.fatura?.url) {
+    $('btnAssinar').innerHTML = `${icone('coroa')} Pagar a fatura em aberto`;
+  } else {
+    $('btnAssinar').innerHTML = `${icone('coroa')} Assinar o Premium`;
+  }
   $('premium').showModal();
 }
+// máscara de CPF (11 dígitos) ou CNPJ (14)
+function mascaraDoc(d) {
+  d = d.slice(0, 14);
+  if (d.length <= 11) return d.replace(/^(\d{3})(\d)/, '$1.$2').replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3').replace(/\.(\d{3})(\d{1,2})$/, '.$1-$2');
+  return d.replace(/^(\d{2})(\d)/, '$1.$2').replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3').replace(/\.(\d{3})(\d)/, '.$1/$2').replace(/(\d{4})(\d{1,2})$/, '$1-$2');
+}
+$('docAssinar').addEventListener('input', (e) => { e.target.value = mascaraDoc(e.target.value.replace(/\D/g, '')); });
+$('docAssinar').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('btnAssinar').click(); } });
 $('precos').onclick = (e) => {
   const b = e.target.closest('[data-periodo]'); if (!b) return;
   periodo = b.dataset.periodo;
   $('precos').querySelectorAll('.preco').forEach((x) => x.classList.toggle('on', x === b));
 };
-$('btnAssinar').onclick = () => {
+$('btnAssinar').onclick = async () => {
+  if (planos?.pagamento_online) return assinarOnline();
   if (!planos?.link_pagamento) return;
   const url = new URL(planos.link_pagamento);
   url.searchParams.set('periodo', periodo);
   window.open(url.toString(), '_blank', 'noopener');
 };
+async function assinarOnline() {
+  if (assinatura?.ativa && assinatura.fatura?.url) { guardarEspera(); location.href = assinatura.fatura.url; return; }
+  const b = $('btnAssinar'), doc = $('docAssinar').value.replace(/\D/g, '');
+  if (!$('passoDoc').hidden && doc.length !== 11 && doc.length !== 14) { msg('msgAssinar', 'Digite o CPF (11 números) ou o CNPJ (14).'); return $('docAssinar').focus(); }
+  b.disabled = true; const antes = b.innerHTML; b.textContent = 'Gerando sua fatura...'; msg('msgAssinar', '', '');
+  try {
+    const r = await fetch('/api/assinatura', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ periodo, documento: doc || undefined }) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      b.disabled = false; b.innerHTML = antes;
+      if (j.pedirDocumento) {
+        const primeira = $('passoDoc').hidden;
+        $('passoDoc').hidden = false; setTimeout(() => $('docAssinar').focus(), 50);
+        if (!primeira) msg('msgAssinar', j.erro);
+      } else msg('msgAssinar', j.erro || 'Não deu pra gerar a fatura. Tente de novo.');
+      return;
+    }
+    guardarEspera();
+    b.textContent = 'Indo pro pagamento...';
+    location.href = j.url;
+    setTimeout(() => { b.disabled = false; b.innerHTML = antes; }, 4000); // se o navegador não sair da página
+    return;
+  } catch { msg('msgAssinar', 'Sem conexão. Tente de novo.'); }
+  b.disabled = false; b.innerHTML = antes;
+}
+// Quando a pessoa volta da fatura, confere se o pagamento já caiu
+const ESPERA = 'lembraai:esperando-pagamento';
+function guardarEspera() { try { localStorage.setItem(ESPERA, String(Date.now())); } catch {} }
+function esperandoPagamento() { try { return Number(localStorage.getItem(ESPERA) || 0) > Date.now() - 6 * 3600_000; } catch { return false; } }
+let conferindo = null;
+async function conferirPagamento() {
+  if (!usuario || usuario.premium || !esperandoPagamento() || conferindo) return;
+  let vezes = 0;
+  conferindo = setInterval(async () => {
+    vezes++;
+    try {
+      const eu = await api('/api/me');
+      if (eu.premium) {
+        clearInterval(conferindo); conferindo = null;
+        try { localStorage.removeItem(ESPERA); } catch {}
+        usuario = eu; await carregarAssinatura(); desenharPlano(); await desenharTela();
+        toast('Pagamento confirmado! Seu Premium está liberado.', false, 'coroa');
+      }
+    } catch {}
+    if (vezes >= 24 && conferindo) { clearInterval(conferindo); conferindo = null; } // 2 minutos; Pix e cartão caem rápido
+  }, 5000);
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden) conferirPagamento(); });
+
+let assinatura = null;
+async function carregarAssinatura() {
+  if (!planos?.pagamento_online) { assinatura = null; return; }
+  try { assinatura = await api('/api/assinatura'); } catch { assinatura = null; }
+}
+function htmlAssinatura() {
+  if (!assinatura?.ativa) return '';
+  const per = assinatura.periodo === 'mensal' ? 'mensal' : 'anual';
+  const fat = assinatura.fatura?.url ? `<a href="${esc(assinatura.fatura.url)}" data-fatura>Pagar fatura em aberto</a>` : '';
+  const txt = assinatura.status === 'ativa' ? `Assinatura ${per} · renova sozinha` : `Assinatura ${per} · aguardando pagamento`;
+  return `<div class="assinatura-menu"><span>${txt}</span>${fat}<button type="button" class="cancelar" id="btnCancelarAss">Cancelar assinatura</button></div>`;
+}
+document.addEventListener('click', (e) => {
+  if (e.target.closest('[data-fatura]')) guardarEspera();
+  if (e.target.closest('#btnCancelarAss')) {
+    $('menuConta').hidden = true; msg('msgCancelarAss', '', '');
+    $('cancelarTexto').textContent = usuario.premium && usuario.premium_ate
+      ? `As próximas cobranças param. Seu Premium continua valendo até ${new Date(usuario.premium_ate).toLocaleDateString('pt-BR')}, que é o período que você já pagou.`
+      : 'As próximas cobranças param e a fatura em aberto é cancelada.';
+    $('dlgCancelarAss').showModal();
+  }
+});
+$('btnConfirmaCancelar').onclick = async () => {
+  const b = $('btnConfirmaCancelar'); b.disabled = true;
+  try {
+    await api('/api/assinatura/cancelar', { method: 'POST' });
+    $('dlgCancelarAss').close();
+    usuario = await api('/api/me'); await carregarAssinatura(); desenharPlano();
+    toast('Assinatura cancelada. Não haverá novas cobranças.', false, 'check');
+  } catch (err) { msg('msgCancelarAss', err.message); }
+  finally { b.disabled = false; }
+};
+
 document.addEventListener('click', (e) => {
   const b = e.target.closest('[data-premium]');
   if (b) { e.preventDefault(); abrirPremium(b.dataset.premium === '1' ? '' : b.dataset.premium); }
@@ -812,13 +947,15 @@ document.addEventListener('click', (e) => {
 function desenharPlano() {
   if (usuario.premium) {
     const ate = usuario.premium_ate ? ` até ${new Date(usuario.premium_ate).toLocaleDateString('pt-BR')}` : '';
-    $('planoMenu').innerHTML = `<b><span class="selo-premium">${icone('coroa')} Premium</span></b><span style="color:var(--cinza)">${ate}</span>`;
+    $('planoMenu').innerHTML = `<b><span class="selo-premium">${icone('coroa')} Premium</span></b><span style="color:var(--cinza)">${ate}</span>${htmlAssinatura()}`;
     $('faixaPlano').innerHTML = '';
   } else {
     const max = planos?.limite_gratis?.lembretes ?? 3;
     const usados = Math.min(lembretes.length, max);
-    $('planoMenu').innerHTML = `<b>Plano Grátis</b><button type="button" class="btn-premium" data-premium="1" style="padding:5px 10px;font-size:12px">${icone('coroa')} Premium</button>`;
-    $('faixaPlano').innerHTML = `<div class="faixa-plano">
+    $('planoMenu').innerHTML = `<b>Plano Grátis</b><button type="button" class="btn-premium" data-premium="1" style="padding:5px 10px;font-size:12px">${icone('coroa')} Premium</button>${htmlAssinatura()}`;
+    const fatura = assinatura?.ativa && assinatura.fatura?.url
+      ? `<div class="faixa-fatura">${icone('coroa')} <span>Sua assinatura Premium está esperando o pagamento.</span><a href="${esc(assinatura.fatura.url)}" data-fatura>Pagar agora</a></div>` : '';
+    $('faixaPlano').innerHTML = fatura + `<div class="faixa-plano">
       <span>Plano Grátis: <b>${usados} de ${max}</b> lembretes</span>
       <div class="barra"><span style="width:${(usados / max) * 100}%"></span></div>
       <button type="button" class="btn-premium" data-premium="1">${icone('coroa')} Conhecer o Premium</button>
@@ -842,7 +979,8 @@ async function buscarContaAdmin() {
     const status = c.premium
       ? `<span class="selo-premium">${icone('coroa')} Premium</span> ${c.premium_ate ? 'até ' + new Date(c.premium_ate).toLocaleDateString('pt-BR') : 'sem prazo'}`
       : '<b>Grátis</b>';
-    box.innerHTML = `<b>${esc(c.nome)}</b> · ${esc(c.email)}<br>${status} · ${c.lembretes} lembrete(s) · número ${c.telefone_verificado_em ? 'confirmado' : 'não confirmado'}
+    const ass = c.assinatura_status ? ` · assinatura ${esc(c.assinatura_periodo || '')} <b>${esc(c.assinatura_status)}</b> no Asaas` : '';
+    box.innerHTML = `<b>${esc(c.nome)}</b> · ${esc(c.email)}<br>${status}${ass} · ${c.lembretes} lembrete(s) · número ${c.telefone_verificado_em ? 'confirmado' : 'não confirmado'}
       <div class="botoes">
         <button type="button" class="mini" data-plano="premium" data-dias="30">+30 dias Premium</button>
         <button type="button" class="mini" data-plano="premium" data-dias="365">+1 ano Premium</button>
@@ -1266,11 +1404,13 @@ function atualizarPrevia() {
   previaTimer = setTimeout(async () => {
     const hora = ($('edHorario').value || '09:00').slice(0, 5);
     try {
-      const { texto, enquete } = await api('/api/lembretes/previa', { method: 'POST', body: dadosDoEditor() });
+      const { texto, enquete, botoes } = await api('/api/lembretes/previa', { method: 'POST', body: dadosDoEditor() });
       // o aviso chega como enquete: a pergunta é o texto (sem negrito) e as opções aparecem embaixo
       const corpo = enquete ? `<b class="enq-titulo">${esc(texto.replace(/[*_~]/g, ''))}</b>` : negrito(texto);
-      const opcoes = enquete ? `<div class="enq"><div class="enq-sub">Selecione uma opção</div>${enquete.map((o) => `<div class="enq-op"><span class="enq-bola"></span>${esc(o)}</div>`).join('')}</div>` : '';
-      $('bolha').innerHTML = corpo + opcoes + `<span class="hora">${hora}</span>`;
+      const opcoes = !enquete || botoes ? '' : `<div class="enq"><div class="enq-sub">Selecione uma opção</div>${enquete.map((o) => `<div class="enq-op"><span class="enq-bola"></span>${esc(o)}</div>`).join('')}</div>`;
+      $('bolha').innerHTML = (botoes ? negrito(texto) : corpo) + opcoes + `<span class="hora">${hora}</span>`;
+      // API oficial: botões de verdade, embaixo do balão
+      $('botoesPrevia').innerHTML = botoes ? enquete.map((o) => `<div>${esc(o)}</div>`).join('') : '';
     } catch (e) {
       $('bolha').innerHTML = `<span style="color:var(--cinza)">${esc(e.message)}</span><span class="hora">${hora}</span>`;
     }
@@ -1336,7 +1476,12 @@ async function desenharAdmin() {
   const chave = d.status + (d.qr || '') + (d.aviso || '');
   if (corpo.dataset.chave === chave) return;
   corpo.dataset.chave = chave;
-  if (d.status === 'conectado') {
+  if (d.oficial) { // API oficial: o número fica no painel da Meta, sem QR code
+    corpo.innerHTML = d.status === 'conectado'
+      ? `${icone('ok', 'ic-g')}<b>API oficial do WhatsApp${d.numero ? ': +' + esc(d.numero.slice(0, 2)) + ' ' + esc(fmtTel(d.numero)) : ''}</b>
+        <span class="sub">Os avisos saem pelos modelos aprovados na Meta, com os botões "Já paguei" e "Me lembra mais tarde". O número é gerenciado no painel da Meta.</span>`
+      : `${icone('celular-off', 'ic-g')}<b>API oficial não configurada</b><span class="msg erro" style="margin:0">${esc(d.aviso || '')}</span>`;
+  } else if (d.status === 'conectado') {
     corpo.innerHTML = `${icone('ok', 'ic-g')}<b>Conectado${d.numero ? ': +' + esc(d.numero.slice(0, 2)) + ' ' + esc(fmtTel(d.numero)) : ''}</b>
       <span class="sub">Os lembretes de todo mundo saem por este número.</span>
       <button type="button" class="mini perigo" id="btnDesc">Desconectar</button>`;
@@ -1574,7 +1719,9 @@ $('btnTour').onclick = () => { $('menuConta').hidden = true; abrirTour(); };
   $('contaEmail').textContent = usuario.email;
   $('btnAdmin').hidden = !usuario.admin;
   await Promise.all([carregarSistema(), carregarPlanos()]);
+  await carregarAssinatura();
   desenharPlano();
+  conferirPagamento();
   try { await desenharTela(); } finally { terminarCarregamento(); } // some mesmo se algo falhar
   setInterval(carregarSistema, 20000);
   setInterval(() => { if (!$('secLembretes').hidden) carregarHistorico(); }, 60000);

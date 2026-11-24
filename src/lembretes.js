@@ -2,7 +2,7 @@
 // Datas sempre no horário de Brasília (UTC-3, sem horário de verão).
 import cron from 'node-cron';
 import { supabase } from './supabase.js';
-import { online, enviarTexto, enviarEnquete } from './whatsapp.js';
+import { online, enviarTexto, enviarEnquete, enviarModeloAviso, MODO } from './whatsapp.js';
 import { situacaoDasContas, noPlano } from './planos.js';
 import { abrirConta, abrirLembrete, cifrarTextoEnvio, cifrar, ctx } from './cripto.js';
 
@@ -111,10 +111,22 @@ function montarCorpo({ lembrete, nome, vencimento, diasAntes }) {
 // ---------- enquete no aviso ----------
 // O aviso sai como enquete: a pessoa toca numa opção em vez de digitar. "paguei" digitado continua valendo.
 // Pra voltar ao aviso só de texto, coloque AVISO_COM_ENQUETE=0 no Render.
-export const ENQUETE_LIGADA = process.env.AVISO_COM_ENQUETE !== '0';
+export const ENQUETE_LIGADA = MODO === 'oficial' || process.env.AVISO_COM_ENQUETE !== '0';
+
+// API oficial: o aviso sai pelo modelo aprovado "Oi, {{1}}! Lembrete da conta *{{2}}*: {{3}}."
+export function partesDoAviso({ lembrete, nome, vencimento, diasAntes }) {
+  const primeiroNome = String(nome || '').trim().split(/\s+/)[0] || 'tudo bem';
+  const valor = fmtValor(lembrete.valor);
+  const data = fmtData(vencimento);
+  const situacao = diasAntes < 0 ? `venceu dia ${data}` : diasAntes === 0 ? `vence hoje, dia ${data}`
+    : diasAntes === 1 ? `vence amanhã, dia ${data}` : `vence em ${diasAntes} dias, dia ${data}`;
+  return { nome: primeiroNome, conta: `${lembrete.titulo}${valor ? ` de ${valor}` : ''}`, situacao };
+}
+export const textoDoModelo = (p) => `Oi, ${p.nome}! Lembrete da conta *${p.conta}*: ${p.situacao}.`;
 export const OPCOES = {
   aviso: { pago: '✅ Já paguei', adiar: '⏰ Me lembra mais tarde' },
   adiar: { h1: 'Daqui 1 hora', h3: 'Daqui 3 horas', noite: 'Hoje à noite (20h)', amanha: 'Amanhã de manhã (9h)' },
+  pago: { desfazer: '↩️ Desfazer' }, // botão depois do "Pagamento anotado" (API oficial)
 };
 const semFormatacao = (t) => t.replace(/[*_~]/g, '');
 
@@ -132,6 +144,14 @@ export async function enviarAviso({ jid, contaId, lembrete, nome, vencimento, di
   if (!ENQUETE_LIGADA) {
     const texto = prefixo + montarTexto({ lembrete, nome, vencimento, diasAntes });
     return { msgId: await enviarTexto(jid, texto), texto };
+  }
+  if (MODO === 'oficial') {
+    // modelo aprovado pela Meta com os botões; mensagem personalizada do Premium vai num 2º modelo (se configurado)
+    const partes = partesDoAviso({ lembrete, nome, vencimento, diasAntes });
+    const personalizada = lembrete.mensagem?.trim() ? montarTexto({ lembrete, nome, vencimento, diasAntes, rodape: false }) : null;
+    const id = await enviarModeloAviso(jid, { ...partes, personalizada });
+    await guardarEnquete({ id, segredo: 'botoes', tipo: 'aviso', contaId, lembreteId: lembrete.id, vencimento });
+    return { msgId: id, texto: personalizada || textoDoModelo(partes) };
   }
   const corpo = prefixo + montarTexto({ lembrete, nome, vencimento, diasAntes, rodape: false });
   const opcoes = Object.values(OPCOES.aviso);

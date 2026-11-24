@@ -27,6 +27,12 @@ services:
         value: "9,90"
       - key: PRECO_ANUAL
         value: "79,90"
+      - key: ASAAS_API_KEY        # chave de API do Asaas ($aact_hmlg_... no teste, $aact_prod_... valendo)
+        sync: false
+      - key: ASAAS_AMBIENTE       # sandbox ou producao
+        value: sandbox
+      - key: ASAAS_WEBHOOK_TOKEN  # o mesmo token configurado no webhook do Asaas
+        sync: false
       - key: PREMIUM_LINK
         sync: false
       # quem responde pelo serviço (aparece nos Termos de uso e na Política de privacidade)
@@ -38,3 +44,6 @@ services:
         sync: false
       - key: CIDADE
         value: Toledo, PR
+      # WhatsApp: baileys (chip + QR code, padrão) ou oficial (API da Meta, veja a seção 7 do README)
+      - key: WHATSAPP_PROVEDOR
+        value: baileys

@@ -126,7 +126,7 @@
     <tr><td>Avisos</td><td>O texto de cada aviso enviado, o horário e se foi entregue.</td></tr>
     <tr><td>Suas respostas no WhatsApp</td><td>Lemos as mensagens que você manda pro número do Lembra Aí só pra entender comandos como "paguei". <b>O conteúdo das suas mensagens não é guardado.</b></td></tr>
     <tr><td>Quem escreve sem ter conta</td><td>O número é transformado num código irreversível, usado só pra não mandar o convite de cadastro mais de uma vez por semana. O número em si não fica guardado.</td></tr>
-    <tr><td>Plano</td><td>Se a conta é Grátis ou Premium, e até quando vale o Premium.</td></tr>
+    <tr><td>Plano e assinatura</td><td>Se a conta é Grátis ou Premium e até quando vale o Premium. Se você assinar, guardamos os códigos do cliente e da assinatura no Asaas e o registro de cada pagamento do Premium (valor, data, forma e situação). <b>O CPF ou CNPJ não fica guardado com a gente.</b></td></tr>
     <tr><td>Segurança</td><td>O endereço IP é usado na hora, em memória, pra limitar tentativas de senha e cadastros em massa. Ele não é gravado no nosso banco de dados. O provedor de hospedagem pode manter registros técnicos de acesso por alguns dias.</td></tr>
   </tbody>
 </table>
@@ -147,6 +147,7 @@
 <div class="aviso"><p style="margin:0"><b>O Lembra Aí não recebe, não vê e não guarda número de cartão, código de segurança ou dados bancários.</b></p></div>
 <ul>
   <li>O pagamento do Premium acontece no ambiente da plataforma de pagamentos parceira (como o Asaas), que segue as regras de segurança do mercado de cartões (PCI DSS) e tem a própria política de privacidade. A gente recebe dela só a confirmação de que o pagamento foi feito.</li>
+  <li>Na hora de assinar, o site pede o CPF ou CNPJ de quem vai pagar, porque o Asaas precisa dele pra emitir a cobrança. Esse número é enviado direto pro Asaas e <b>não é gravado no nosso banco de dados</b>.</li>
   <li>Os lembretes de fatura do cartão guardam só o que você escreveu (ex.: "Fatura Nubank") e o valor, e isso fica criptografado como todo o resto.</li>
   <li>Se você tentar colocar um número de cartão num lembrete, o sistema recusa, pra te proteger.</li>
   <li>A gente nunca vai pedir dados de cartão, senha do banco ou código por WhatsApp. Se alguém pedir em nome do Lembra Aí, é golpe.</li>
@@ -161,7 +162,7 @@
     <tr><td>Render</td><td>Hospedagem do site e do sistema</td><td>Os dados passam pelo servidor pra funcionar. A chave da criptografia fica só lá.</td></tr>
     <tr><td>WhatsApp (Meta)</td><td>Entregar os avisos</td><td>Seu número e o texto de cada aviso</td></tr>
     <tr><td>Google (Gemini)</td><td>Sugestões de mensagem com IA (Premium)</td><td>Só o tipo de conta e o tom escolhido. <b>Nenhum dado pessoal.</b></td></tr>
-    <tr><td>Plataforma de pagamentos (ex.: Asaas)</td><td>Cobrança do Premium</td><td>Os dados que você informa direto pra ela na hora de pagar</td></tr>
+    <tr><td>Asaas (plataforma de pagamentos)</td><td>Cobrança do Premium</td><td>Nome, e-mail e o CPF ou CNPJ que você informa ao assinar, mais os dados que você preenche na página de pagamento dela</td></tr>
   </tbody>
 </table>
 <p>Alguns desses serviços guardam dados em servidores fora do Brasil (como nos Estados Unidos). Essa transferência segue o art. 33 da LGPD, com empresas que adotam padrões de proteção compatíveis. Também podemos compartilhar dados se uma lei ou ordem judicial exigir.</p>

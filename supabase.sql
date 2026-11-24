@@ -119,7 +119,7 @@ create table if not exists public.contatos_desconhecidos (
 --     sem ele não dá pra ler o voto. Enquetes com mais de 40 dias são apagadas sozinhas.
 create table if not exists public.enquetes (
   id          text primary key,      -- id da mensagem da enquete no WhatsApp
-  tipo        text not null check (tipo in ('aviso', 'adiar')),
+  tipo        text not null check (tipo in ('aviso', 'adiar', 'pago')),
   conta_id    uuid not null references public.contas (id) on delete cascade,
   lembrete_id uuid not null references public.lembretes (id) on delete cascade,
   vencimento  date not null,
@@ -128,6 +128,38 @@ create table if not exists public.enquetes (
   criado_em   timestamptz not null default now()
 );
 create index if not exists enquetes_criado_idx on public.enquetes (criado_em);
+-- (pra quem criou a tabela antes do botão "Desfazer")
+alter table public.enquetes drop constraint if exists enquetes_tipo_check;
+alter table public.enquetes add constraint enquetes_tipo_check check (tipo in ('aviso', 'adiar', 'pago'));
+
+-- 3e) Pagamento pelo Asaas. O CPF NÃO fica aqui: vai direto pro Asaas. Aqui só os códigos de lá.
+alter table public.contas add column if not exists asaas_cliente_id    text;
+alter table public.contas add column if not exists asaas_assinatura_id text;
+alter table public.contas add column if not exists assinatura_periodo  text;   -- mensal | anual
+alter table public.contas add column if not exists assinatura_status   text;   -- aguardando | ativa | cancelada
+create index if not exists contas_asaas_assinatura_idx on public.contas (asaas_assinatura_id);
+create index if not exists contas_asaas_cliente_idx on public.contas (asaas_cliente_id);
+
+-- Eventos do webhook já recebidos (o Asaas pode mandar o mesmo mais de uma vez)
+create table if not exists public.asaas_eventos (
+  id          text primary key,
+  evento      text,
+  recebido_em timestamptz not null default now()
+);
+-- Pagamentos do Premium (ficam mesmo se a conta for excluída: a lei fiscal pede guardar por 5 anos)
+create table if not exists public.asaas_pagamentos (
+  id            text primary key,          -- id do pagamento no Asaas
+  conta_id      uuid references public.contas (id) on delete set null,
+  assinatura_id text,
+  valor         numeric(10,2),
+  forma         text,                      -- PIX, BOLETO, CREDIT_CARD
+  vencimento    date,
+  status        text not null,             -- pago | estornado | apagado
+  liberado_ate  timestamptz,
+  criado_em     timestamptz not null default now(),
+  atualizado_em timestamptz not null default now()
+);
+create index if not exists asaas_pagamentos_conta_idx on public.asaas_pagamentos (conta_id);
 
 -- 4) Sessão do WhatsApp do sistema (o seu chip)
 create table if not exists public.sistema_auth (
@@ -145,6 +177,8 @@ alter table public.pagamentos   enable row level security;
 alter table public.contatos_desconhecidos enable row level security;
 alter table public.enquetes     enable row level security;
 alter table public.sistema_auth enable row level security;
+alter table public.asaas_eventos    enable row level security;
+alter table public.asaas_pagamentos enable row level security;
 
 grant usage on schema public to service_role;
-grant all on table public.contas, public.lembretes, public.envios, public.pagamentos, public.contatos_desconhecidos, public.sistema_auth, public.enquetes to service_role;
+grant all on table public.contas, public.lembretes, public.envios, public.pagamentos, public.contatos_desconhecidos, public.sistema_auth, public.enquetes, public.asaas_eventos, public.asaas_pagamentos to service_role;

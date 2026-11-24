@@ -10,6 +10,7 @@ import { abrirConta, fecharConta, indice } from './cripto.js';
 import { TERMOS_VERSAO } from './legal.js';
 import { criarLimite, recusar } from './limites.js';
 import { ehPremium } from './planos.js';
+import { cancelarAssinatura } from './asaas.js';
 
 const scrypt = promisify(scryptCb);
 const COOKIE = 'lembretes_sessao';
@@ -225,6 +226,13 @@ export function rotasDeConta(app) {
         falhasPorEmail.registrar(chave);
         await espera(400 + Math.random() * 300);
         return res.status(400).json({ erro: 'Senha incorreta' }); // 400 (não 401): o painel trata 401 como sessão expirada
+      }
+      // Para as cobranças no Asaas antes de apagar (se falhar, não apaga: melhor do que cobrar quem saiu)
+      try {
+        await cancelarAssinatura(req.usuario.id);
+      } catch (e) {
+        console.error('Cancelar assinatura ao excluir conta:', e.message);
+        return res.status(502).json({ erro: 'Não deu pra cancelar sua assinatura agora. Tente de novo em instantes.' });
       }
       const { error } = await supabase.from('contas').delete().eq('id', req.usuario.id);
       if (error) throw error;

@@ -10,8 +10,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { LIMITE_GRATIS, PRECOS } from './planos.js';
 
-export const TERMOS_VERSAO = '1.0';
-const TERMOS_DATA = '23/11/2026';
+export const TERMOS_VERSAO = '1.1'; // 1.1: assinatura pelo Asaas
+const TERMOS_DATA = '24/11/2026';
 
 const raiz = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const esc = (t) => String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));

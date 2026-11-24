@@ -13,9 +13,10 @@ import { paginaLegal } from './legal.js';
 import * as whatsapp from './whatsapp.js';
 import { sugerirMensagens, iaConfigurada, TONS } from './ia.js';
 import { LIMITE_GRATIS, PRECOS, LINK_PAGAMENTO, situacaoDasContas, ehPremium as ehPremiumAgora } from './planos.js';
-import { tratarMensagem, tratarVoto } from './respostas.js';
+import { asaasLigado, ambienteAsaas, assinar, cancelarAssinatura, situacaoAssinatura, rotasWebhookAsaas } from './asaas.js';
+import { tratarMensagem, tratarVoto, tratarEscolha } from './respostas.js';
 import {
-  TIPOS, montarTexto, enviarAviso, ENQUETE_LIGADA, OPCOES, regenerar, gerarTodos, iniciarAgendador, dispararPendentes, destravar,
+  TIPOS, montarTexto, enviarAviso, ENQUETE_LIGADA, OPCOES, partesDoAviso, textoDoModelo, regenerar, gerarTodos, iniciarAgendador, dispararPendentes, destravar,
   proximoVencimento, hojeBR, pagamentosDe, chavePago, marcarPago, desfazerPago, regenerarConta,
 } from './lembretes.js';
 import {
@@ -36,7 +37,8 @@ try {
 
 const app = express();
 app.set('trust proxy', 1);
-app.use(express.json());
+// rawBody: o webhook da API oficial confere a assinatura da Meta sobre o corpo original
+app.use(express.json({ limit: '1mb', verify: (req, _res, buf) => { if (req.originalUrl.startsWith('/webhook/')) req.rawBody = buf; } }));
 
 // ---- Pública (UptimeRobot) ----
 app.get('/health', (_req, res) => res.json({ ok: true, whatsapp: whatsapp.getStatus().status }));
@@ -48,6 +50,24 @@ app.get('/favicon.ico', marca('favicon.ico'));
 app.get('/apple-touch-icon.png', marca('apple-touch-icon.png'));
 app.get('/apple-touch-icon-precomposed.png', marca('apple-touch-icon.png'));
 app.get('/site.webmanifest', (req, res) => res.type('application/manifest+json').sendFile(path.join(raiz, 'public', 'marca', 'site.webmanifest')));
+
+// Webhook da API oficial do WhatsApp (só existe com WHATSAPP_PROVEDOR=oficial)
+whatsapp.rotasWebhook(app);
+
+// Webhook do Asaas: pagamento entrou -> liga o Premium; estorno -> desliga
+const dataBR = (iso) => new Date(iso).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+rotasWebhookAsaas(app, async (contaId, { tipo, premium_ate, jid, primeiro }) => {
+  esquecerUsuario(contaId);
+  await regenerarConta(contaId).catch((e) => console.error('Regenerar depois do pagamento:', e.message));
+  console.log(`Asaas: Premium ${tipo} pra conta ${contaId.slice(0, 8)}${premium_ate ? ` (até ${premium_ate.slice(0, 10)})` : ''}`);
+  if (!jid || !whatsapp.online()) return;
+  const texto = tipo === 'liberado'
+    ? (primeiro
+      ? `👑 *Pagamento confirmado!* Seu Lembra Aí Premium está liberado${premium_ate ? ` até ${dataBR(premium_ate)} (renova sozinho)` : ''}. Agora todos os seus lembretes funcionam, com vários avisos por conta. Obrigado! 💚`
+      : `👑 Pagamento da renovação confirmado! Seu Premium segue valendo${premium_ate ? ` até ${dataBR(premium_ate)}` : ''}. 💚`)
+    : 'Seu pagamento do Premium foi estornado, então a conta voltou pro plano Grátis. Qualquer dúvida, é só responder aqui.';
+  await whatsapp.enviarTexto(jid, texto).catch(() => {}); // na API oficial, fora da janela de 24h, não chega (sem problema)
+});
 
 // Termos de uso e Política de privacidade (públicas)
 app.get(['/termos', '/termos-de-uso'], (_req, res) => res.type('html').send(paginaLegal('termos.html')));
@@ -65,7 +85,7 @@ rotasDeConta(app);
 
 // Preços e limites (público: a página de apresentação também usa)
 app.get('/api/planos', (_req, res) => res.json({
-  precos: PRECOS, limite_gratis: LIMITE_GRATIS, link_pagamento: LINK_PAGAMENTO,
+  precos: PRECOS, limite_gratis: LIMITE_GRATIS, link_pagamento: LINK_PAGAMENTO, pagamento_online: asaasLigado,
 }));
 
 app.use('/api', exigirLoginApi);
@@ -108,7 +128,7 @@ app.post('/api/telefone/codigo', async (req, res) => {
     }).eq('id', conta.id);
     if (error) throw error;
 
-    await whatsapp.enviarTexto(jid, `🔐 Seu código de confirmação é *${codigo}*.\n\nEle vale por 10 minutos. Se não foi você que pediu, pode ignorar esta mensagem.`);
+    await whatsapp.enviarCodigo(jid, codigo);
     pedidosDeCodigo.set(conta.id, [...recentes, Date.now()]);
     res.json({ ok: true });
   } catch (e) {
@@ -360,6 +380,10 @@ app.post('/api/lembretes/previa', (req, res) => {
     const campos = validarLembrete({ ...req.body, data: req.body?.data || hojeBR().str });
     const vencimento = proximoVencimento(campos) || hojeBR().str;
     const args = { lembrete: campos, nome: req.usuario.nome, vencimento, diasAntes: campos.avisos[0] };
+    if (whatsapp.MODO === 'oficial') { // modelo aprovado da Meta + botões
+      const texto = campos.mensagem && process.env.WHATSAPP_MODELO_PERSONALIZADO ? montarTexto({ ...args, rodape: false }) : textoDoModelo(partesDoAviso(args));
+      return res.json({ texto, enquete: ['Já paguei', 'Me lembra mais tarde'], botoes: true });
+    }
     res.json(ENQUETE_LIGADA
       ? { texto: montarTexto({ ...args, rodape: false }), enquete: Object.values(OPCOES.aviso) }
       : { texto: montarTexto(args), enquete: null });
@@ -411,6 +435,36 @@ app.get('/api/envios', async (req, res) => {
     .order('enviar_em', { ascending: false }).limit(30);
   if (error) return erroPadrao(res, error);
   res.json((data || []).map((e) => ({ ...e, texto: decifrarTextoEnvio(e.id, e.texto) })));
+});
+
+// =============== ASSINATURA (Asaas) ===============
+app.get('/api/assinatura', async (req, res) => {
+  try { res.json(await situacaoAssinatura(req.usuario.id)); } catch (e) { erroPadrao(res, e); }
+});
+
+const pedidosDeAssinatura = new Map(); // contaId -> último pedido (evita clique duplo criar duas assinaturas)
+app.post('/api/assinatura', async (req, res) => {
+  try {
+    const id = req.usuario.id;
+    if ((pedidosDeAssinatura.get(id) || 0) > Date.now() - 8000) return res.status(429).json({ erro: 'Só um instante, já estamos gerando sua fatura.' });
+    pedidosDeAssinatura.set(id, Date.now());
+    const r = await assinar(id, { periodo: req.body?.periodo, documento: req.body?.documento });
+    res.json(r);
+  } catch (e) {
+    pedidosDeAssinatura.delete(req.usuario.id);
+    if (e.pedirDocumento) return res.status(400).json({ erro: e.message, pedirDocumento: true });
+    erroPadrao(res, e, e.status || 500);
+  }
+});
+
+app.post('/api/assinatura/cancelar', async (req, res) => {
+  try {
+    const r = await cancelarAssinatura(req.usuario.id);
+    esquecerUsuario(req.usuario.id);
+    res.json(r);
+  } catch (e) {
+    erroPadrao(res, e, e.status || 500);
+  }
 });
 
 // =============== MEUS DADOS (LGPD art. 18: acesso e portabilidade) ===============
@@ -476,12 +530,12 @@ app.post('/api/admin/whatsapp/desconectar', exigirAdmin, async (_req, res) => {
 // Admin: ver e mudar o plano de uma conta pelo e-mail (até o pagamento automático existir)
 app.get('/api/admin/conta', exigirAdmin, async (req, res) => {
   const email = String(req.query.email || '').trim().toLowerCase();
-  const data = abrirConta((await supabase.from('contas').select('id, nome, email, plano, premium_ate, telefone_verificado_em, criado_em')
+  const data = abrirConta((await supabase.from('contas').select('id, nome, email, plano, premium_ate, telefone_verificado_em, criado_em, assinatura_status, assinatura_periodo')
     .eq('email_indice', indice('email', email)).maybeSingle()).data);
   if (!data) return res.status(404).json({ erro: 'Nenhuma conta com esse e-mail' });
   const { count } = await supabase.from('lembretes').select('id', { count: 'exact', head: true }).eq('conta_id', data.id);
-  const { id, nome, email: mail, plano, premium_ate, telefone_verificado_em, criado_em } = data; // só o necessário
-  res.json({ id, nome, email: mail, plano, premium_ate, telefone_verificado_em, criado_em, lembretes: count ?? 0, premium: ehPremiumAgora(data) });
+  const { id, nome, email: mail, plano, premium_ate, telefone_verificado_em, criado_em, assinatura_status, assinatura_periodo } = data; // só o necessário
+  res.json({ id, nome, email: mail, plano, premium_ate, telefone_verificado_em, criado_em, lembretes: count ?? 0, premium: ehPremiumAgora(data), assinatura_status, assinatura_periodo });
 });
 
 app.post('/api/admin/plano', exigirAdmin, async (req, res) => {
@@ -546,11 +600,15 @@ try {
 
 app.listen(PORT, async () => {
   console.log(`Servidor na porta ${PORT}`);
+  console.log(asaasLigado ? `Asaas ligado (${ambienteAsaas}). Webhook: /webhook/asaas` : 'Asaas desligado (sem ASAAS_API_KEY): o botão de assinar usa o PREMIUM_LINK, se houver.');
   await destravar().catch(() => {});
   whatsapp.quandoChegarMensagem(tratarMensagem); // "paguei", "desfazer", "parar", "ajuda"
-  whatsapp.quandoChegarVoto(tratarVoto); // toque nas enquetes ("Já paguei", "Me lembra mais tarde")
+  whatsapp.quandoChegarVoto(tratarVoto); // chip: toque nas enquetes ("Já paguei", "Me lembra mais tarde")
+  whatsapp.quandoChegarEscolha(tratarEscolha); // API oficial: toque nos botões e na lista
   whatsapp.iniciar()
-    .then((tinha) => console.log(tinha ? 'Reconectando o WhatsApp do sistema...' : 'WhatsApp do sistema ainda não conectado (admin precisa ler o QR).'))
+    .then((tinha) => console.log(whatsapp.MODO === 'oficial'
+      ? (tinha ? 'API oficial do WhatsApp pronta.' : 'API oficial do WhatsApp sem configuração (veja as variáveis WHATSAPP_*).')
+      : (tinha ? 'Reconectando o WhatsApp do sistema...' : 'WhatsApp do sistema ainda não conectado (admin precisa ler o QR).')))
     .catch((e) => console.error('Erro ao iniciar o WhatsApp:', e.message));
   gerarTodos().then((n) => console.log(`${n} aviso(s) conferido(s).`)).catch((e) => console.error('Erro ao gerar avisos:', e.message));
   iniciarAgendador();

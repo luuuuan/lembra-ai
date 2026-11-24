@@ -46,7 +46,7 @@ O sistema avisa no WhatsApp dela antes de vencer, **pelo número do sistema** (o
 | "paguei" pelo WhatsApp, histórico | ✓ | ✓ |
 
 - **Preços:** ficam nas variáveis `PRECO_MENSAL` e `PRECO_ANUAL` (padrão R$ 9,90 e R$ 79,90). O site e o painel usam os mesmos valores.
-- **Pagamento:** coloque o link de assinatura (do Asaas, por exemplo) em `PREMIUM_LINK`. O botão "Assinar o Premium" abre esse link, com `?periodo=mensal` ou `?periodo=anual` no final. Sem o link, a tela avisa que o pagamento online chega em breve.
+- **Pagamento:** com o Asaas ligado (seção 8), a assinatura é automática: a pessoa paga e o Premium liga sozinho. Sem Asaas, dá pra usar um link fixo em `PREMIUM_LINK` e liberar à mão. Sem nenhum dos dois, a tela avisa que o pagamento online chega em breve.
 - **Liberar o Premium:** na janela do admin (**Número do sistema → Planos das contas**), busque o e-mail e escolha "+30 dias", "+1 ano", "sem prazo" ou "Voltar pro Grátis". Renovar soma a partir do fim do período que ainda está valendo.
 - **Quando o Premium acaba:** nada é apagado. Funcionam só os 3 lembretes mais antigos, com 1 aviso cada (o mais perto do vencimento) e mensagem padrão. Assinando de novo, tudo volta como era. As contas Premium aparecem com o cadeado e o botão "Liberar com Premium" nos lembretes parados.
 
@@ -136,6 +136,70 @@ Como funciona:
 - **Limites:** no máximo 15 sugestões por pessoa por hora e 8 por minuto no total. A cota grátis do Gemini é por projeto, então isso evita que uma pessoa gaste a de todo mundo.
 - **Sem chave, sem cota ou se o Gemini falhar:** o botão continua funcionando, com mensagens prontas no tom escolhido e um aviso discreto.
 - **Modelos:** o Google troca os modelos com frequência. O sistema tenta uma lista, do mais leve ao mais novo, e guarda o primeiro que responder. Se um dia nenhum funcionar, o log mostra "nenhum modelo da lista respondeu". Aí é só colocar o nome de um modelo atual em `GEMINI_MODELO`.
+
+## 7. API oficial do WhatsApp (quando crescer)
+
+Por padrão o sistema usa o seu chip (QR code). Com muitos clientes, o mais seguro é a **API oficial da Meta**: botões de verdade e sem risco de bloqueio por automação. Ela cobra por aviso enviado (mensagem de modelo de utilidade). Pra trocar, é só configurar abaixo e mudar `WHATSAPP_PROVEDOR` pra `oficial`. Pra voltar, coloque `baileys`.
+
+1. **Empresa na Meta:** em business.facebook.com, crie (ou use) o Portfólio empresarial e faça a verificação da empresa (CNPJ do MEI serve).
+2. **App:** em developers.facebook.com → Criar app → tipo **Empresa** → adicione o produto **WhatsApp**.
+3. **Número:** em WhatsApp → Configuração da API, adicione um número que **não** esteja no app do WhatsApp (pode ser um chip novo). Copie o **ID do número de telefone** → `WHATSAPP_PHONE_ID`.
+4. **Token permanente:** Configurações do negócio → Usuários do sistema → crie um usuário (admin) → Gerar token, com as permissões `whatsapp_business_messaging` e `whatsapp_business_management` → `WHATSAPP_TOKEN`. (O token temporário do painel vence em 24h.)
+5. **Modelos** (WhatsApp Manager → Modelos de mensagem), idioma **Português (BR)**:
+
+| Nome | Categoria | Conteúdo |
+|---|---|---|
+| `lembrete_conta` | Utilidade | Corpo: `Oi, {{1}}! Lembrete da conta *{{2}}*: {{3}}.` · Rodapé: `Lembra Aí` · Botões de resposta rápida, **nesta ordem**: `Já paguei` e `Me lembra mais tarde` · Exemplos: `Marina` / `Conta de luz de R$ 187,40` / `vence amanhã, dia 10/12` |
+| `codigo_confirmacao` | Autenticação | Modelo padrão de código, com o botão **Copiar código** |
+| `lembrete_personalizado` (opcional) | Utilidade | Corpo: `Lembrete do Lembra Aí: {{1}} Use os botões abaixo pra responder.` · mesmos 2 botões. Usado quando a pessoa (Premium) escreveu a própria mensagem. Sem ele, vai o `lembrete_conta`. |
+
+6. **Webhook:** no app → WhatsApp → Configuração → Webhook: URL `https://SEU-SITE.onrender.com/webhook/whatsapp`, token de verificação = o mesmo de `WHATSAPP_VERIFY_TOKEN` (invente uma senha). Assine o campo **messages**. Em Configurações do app → Básico, copie a **Chave secreta do app** → `WHATSAPP_APP_SECRET` (o sistema confere a assinatura de cada evento).
+7. **Render:**
+
+| Variável | Valor |
+|---|---|
+| `WHATSAPP_PROVEDOR` | `oficial` |
+| `WHATSAPP_TOKEN` | token permanente do passo 4 |
+| `WHATSAPP_PHONE_ID` | ID do número do passo 3 |
+| `WHATSAPP_VERIFY_TOKEN` | a senha que você inventou no passo 6 |
+| `WHATSAPP_APP_SECRET` | chave secreta do app |
+| `WHATSAPP_NUMERO` | o número, só dígitos com 55 (aparece no site pra pessoa salvar) |
+| `WHATSAPP_MODELO_PERSONALIZADO` | `lembrete_personalizado` (só se criou esse modelo) |
+
+**Como fica:** o aviso chega com os botões **Já paguei** e **Me lembra mais tarde**. O "mais tarde" abre uma lista com os horários. O "Pagamento anotado" vem com o botão **Desfazer**. O código de confirmação vem com o botão de copiar. Quem já confirmou o número não precisa confirmar de novo.
+
+## 8. Pagamento automático com o Asaas
+
+Com o Asaas ligado, o botão **Assinar o Premium** cria a assinatura e leva a pessoa pra fatura do Asaas, onde ela paga com Pix, boleto ou cartão. Quando o pagamento entra, o Premium liga sozinho e chega uma mensagem no WhatsApp dela.
+
+**Como funciona**
+- **CPF:** na primeira vez, o site pede o CPF ou CNPJ de quem vai pagar, porque o Asaas exige pra emitir a cobrança. O número vai direto pro Asaas e **não fica no nosso banco**: lá fica só o código do cliente e da assinatura.
+- **Liberação:** o Premium vale até o fim do período pago, mais 3 dias de folga pra renovação cair. Cada pagamento conta uma vez só, mesmo que o Asaas mande "confirmado" e depois "recebido".
+- **Estorno ou chargeback:** desliga o Premium daquele período. Se ainda houver outro pagamento valendo, ele fica até o fim desse outro.
+- **Cancelar:** a pessoa cancela no menu da conta (**Cancelar assinatura**). As cobranças param e o Premium segue até o fim do que já foi pago. Excluir a conta também cancela a assinatura.
+- **Fatura em aberto:** se a pessoa fechar a fatura sem pagar, o painel mostra **Pagar agora**. Clicar em "Assinar" de novo reabre a mesma fatura, sem criar outra cobrança.
+- **Admin:** a busca de contas mostra a situação da assinatura. Os botões de liberar à mão continuam funcionando (Premium "sem prazo" dado à mão não é mexido pelos pagamentos).
+
+**Passo a passo (primeiro no teste)**
+1. Crie uma conta no **Sandbox** do Asaas (ambiente de testes, com dinheiro de mentira) e gere a chave em **Integrações → Chaves de API**. Ela começa com `$aact_hmlg_`.
+2. Rode `npm run gerar-chave`. Ele mostra também um **token pro webhook**: copie.
+3. No Render, em **Environment**, coloque as variáveis da tabela abaixo e salve.
+4. No Asaas, em **Integrações → Webhooks**, crie um webhook:
+   - URL: `https://SEU-SITE/webhook/asaas` (ex.: `https://lembra-ai.com/webhook/asaas`)
+   - Token de autenticação: o token do passo 2
+   - Versão da API: v3. Fila de sincronização: ligada.
+   - Eventos: os de **Cobranças** (pelo menos confirmada, recebida, estornada, chargeback e removida) e os de **Assinaturas** (removida e inativada).
+5. Rode no Supabase o `supabase.sql` de novo (cria as colunas e as tabelas do Asaas).
+6. Teste: assine com o CPF de teste, pague a fatura no Sandbox (lá tem botão pra simular o pagamento) e veja o Premium ligar.
+7. Pra valer: crie a conta de verdade (com o CNPJ do MEI), gere a chave de produção (`$aact_prod_`), troque `ASAAS_API_KEY`, mude `ASAAS_AMBIENTE` pra `producao` e crie o webhook de novo na conta de produção.
+
+| Variável | O que colocar |
+|---|---|
+| `ASAAS_API_KEY` | a chave de API (`$aact_hmlg_...` no teste, `$aact_prod_...` valendo) |
+| `ASAAS_AMBIENTE` | `sandbox` ou `producao` |
+| `ASAAS_WEBHOOK_TOKEN` | o token do passo 2, igual ao do webhook no Asaas |
+
+**Cuidado:** o Asaas desativa a chave de API que fica muito tempo sem uso, e o pagamento para de funcionar. Se isso acontecer, reative a chave em **Integrações → Chaves de API** ou gere uma nova e troque no Render.
 
 ## Cuidados
 
