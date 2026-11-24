@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "node --env-file=.env --watch src/index.js",
-    "gerar-chave": "node scripts/gerar-chave.js"
+    "gerar-chave": "node scripts/gerar-chave.js",
+    "gerar-token": "node scripts/gerar-token.js",
+    "conferir-chave": "node scripts/conferir-chave.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.2",

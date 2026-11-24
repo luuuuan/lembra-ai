@@ -182,7 +182,7 @@ Com o Asaas ligado, o botão **Assinar o Premium** cria a assinatura e leva a pe
 
 **Passo a passo (primeiro no teste)**
 1. Crie uma conta no **Sandbox** do Asaas (ambiente de testes, com dinheiro de mentira) e gere a chave em **Integrações → Chaves de API**. Ela começa com `$aact_hmlg_`.
-2. Rode `npm run gerar-chave`. Ele mostra também um **token pro webhook**: copie.
+2. Rode `npm run gerar-token` e copie o token. (**Não** use o `gerar-chave` aqui: ele cria uma CHAVE_DADOS nova, e trocar essa chave num site que já tem dados faz o servidor parar.)
 3. No Render, em **Environment**, coloque as variáveis da tabela abaixo e salve.
 4. No Asaas, em **Integrações → Webhooks**, crie um webhook:
    - URL: `https://SEU-SITE/webhook/asaas` (ex.: `https://lembra-ai.com/webhook/asaas`)
@@ -198,6 +198,8 @@ Com o Asaas ligado, o botão **Assinar o Premium** cria a assinatura e leva a pe
 | `ASAAS_API_KEY` | a chave de API (`$aact_hmlg_...` no teste, `$aact_prod_...` valendo) |
 | `ASAAS_AMBIENTE` | `sandbox` ou `producao` |
 | `ASAAS_WEBHOOK_TOKEN` | o token do passo 2, igual ao do webhook no Asaas |
+
+**Se o servidor parar com "Dado cifrado com uma chave que o servidor não tem (xxxxxxxx)":** a `CHAVE_DADOS` do Render foi trocada. Volte a chave antiga. Pra descobrir qual das suas chaves guardadas é a certa, rode `npm run conferir-chave -- "CHAVE"`: a certa mostra o mesmo código da mensagem de erro.
 
 **Cuidado:** o Asaas desativa a chave de API que fica muito tempo sem uso, e o pagamento para de funcionar. Se isso acontecer, reative a chave em **Integrações → Chaves de API** ou gere uma nova e troque no Render.
 
