@@ -70,8 +70,8 @@ const textoParam = (t) => ({ type: 'text', text: variavel(t) });
 
 export const enviarTexto = (jid, texto) => chamar({ to: paraNumero(jid), type: 'text', text: { body: texto, preview_url: false } });
 
-// Código de confirmação: modelo de autenticação (com botão "copiar código")
-export const enviarCodigo = (jid, codigo) => chamar({
+// Código de confirmação/login/senha: modelo de autenticação (com botão "copiar código"). O texto é o do modelo aprovado.
+export const enviarCodigo = (jid, codigo, _motivo) => chamar({
   to: paraNumero(jid),
   type: 'template',
   template: {

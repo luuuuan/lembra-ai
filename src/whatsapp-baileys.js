@@ -276,8 +276,13 @@ export function lerVoto({ cifrado, chave }, { enqueteId, segredo, opcoes }, eu =
 }
 
 // Código de confirmação do número
-export const enviarCodigo = (jid, codigo) => enviarTexto(jid,
-  `🔐 Seu código de confirmação é *${codigo}*.\n\nEle vale por 10 minutos. Se não foi você que pediu, pode ignorar esta mensagem.`);
+// motivo: 'confirmar' (número novo), 'login' (entrar no site) ou 'senha' (trocar a senha)
+const TEXTO_CODIGO = {
+  confirmar: (c) => `🔐 Seu código de confirmação é *${c}*.\n\nEle vale por 10 minutos. Se não foi você que pediu, pode ignorar esta mensagem.`,
+  login: (c) => `🔐 Seu código pra entrar no Lembra Aí é *${c}*.\n\nEle vale por 10 minutos. *Não passe esse código pra ninguém*, nem pra quem disser que é do Lembra Aí. Se não foi você que pediu, ignore esta mensagem: sua conta continua segura.`,
+  senha: (c) => `🔐 Seu código pra criar uma senha nova no Lembra Aí é *${c}*.\n\nEle vale por 10 minutos. *Não passe esse código pra ninguém.* Se não foi você que pediu, ignore esta mensagem: sua senha continua a mesma.`,
+};
+export const enviarCodigo = (jid, codigo, motivo = 'confirmar') => enviarTexto(jid, (TEXTO_CODIGO[motivo] || TEXTO_CODIGO.confirmar)(codigo));
 
 // Devolve o id da mensagem enviada (pra saber depois a qual aviso a pessoa respondeu)
 export async function enviarTexto(jid, texto) {

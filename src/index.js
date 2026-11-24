@@ -13,6 +13,7 @@ import { paginaLegal } from './legal.js';
 import * as whatsapp from './whatsapp.js';
 import { sugerirMensagens, iaConfigurada, TONS } from './ia.js';
 import { LIMITE_GRATIS, PRECOS, LINK_PAGAMENTO, situacaoDasContas, ehPremium as ehPremiumAgora } from './planos.js';
+import { rotasDeAcesso } from './acesso.js';
 import { asaasLigado, ambienteAsaas, assinar, cancelarAssinatura, situacaoAssinatura, rotasWebhookAsaas } from './asaas.js';
 import { tratarMensagem, tratarVoto, tratarEscolha } from './respostas.js';
 import {
@@ -82,6 +83,7 @@ app.get(['/', '/index.html'], (req, res) => res.sendFile(pagina(req.usuario ? 'i
 app.get('/painel', exigirLoginPagina, (_req, res) => res.sendFile(pagina('index.html')));
 
 rotasDeConta(app);
+rotasDeAcesso(app);
 
 // Preços e limites (público: a página de apresentação também usa)
 app.get('/api/planos', (_req, res) => res.json({

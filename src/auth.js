@@ -4,6 +4,7 @@
 // Sessão: cookie assinado (HMAC) com validade de 30 dias.
 import { scrypt as scryptCb, timingSafeEqual, createHmac, createHash, randomUUID } from 'node:crypto';
 import { promisify } from 'node:util';
+import { promises as dns } from 'node:dns';
 import argon2 from 'argon2';
 import { supabase } from './supabase.js';
 import { abrirConta, fecharConta, indice } from './cripto.js';
@@ -28,7 +29,7 @@ export const ehAdmin = (email) => ADMINS.includes(String(email).toLowerCase());
 // Argon2id com os parâmetros mínimos da OWASP (19 MiB de memória, 2 passadas): leve pro servidor,
 // caro pra quem tentar adivinhar senhas em massa.
 const ARGON = { type: argon2.argon2id, memoryCost: 19456, timeCost: 2, parallelism: 1 };
-const gerarHash = (senha) => argon2.hash(senha, ARGON);
+export const gerarHash = (senha) => argon2.hash(senha, ARGON);
 const precisaAtualizar = (guardado) => !String(guardado).startsWith('$argon2id$') || argon2.needsRehash(guardado, ARGON);
 
 async function conferirSenha(senha, guardado) {
@@ -50,7 +51,7 @@ const conferirFalso = async (senha) => { hashFalso ||= await gerarHash('senha-qu
 // ---------- token da sessão ----------
 const assinar = (dados) => createHmac('sha256', SEGREDO).update(dados).digest('base64url');
 
-function criarToken(usuarioId) {
+export function criarToken(usuarioId) {
   const dados = Buffer.from(JSON.stringify({ u: usuarioId, e: Date.now() + VALIDADE_MS })).toString('base64url');
   return `${dados}.${assinar(dados)}`;
 }
@@ -63,7 +64,7 @@ function lerToken(token) {
   if (esperado.length !== recebido.length || !timingSafeEqual(esperado, recebido)) return null;
   try {
     const { u, e } = JSON.parse(Buffer.from(dados, 'base64url').toString());
-    return e > Date.now() ? u : null;
+    return e > Date.now() ? { id: u, emitido: e - VALIDADE_MS } : null;
   } catch {
     return null;
   }
@@ -96,7 +97,7 @@ async function buscarUsuario(id) {
   const c = cacheUsuarios.get(id);
   if (c && c.ate > Date.now()) return c.usuario;
   const { data: linha } = await supabase
-    .from('contas').select('id, nome, email, telefone, telefone_verificado_em, plano, premium_ate').eq('id', id).maybeSingle();
+    .from('contas').select('id, nome, email, telefone, telefone_verificado_em, plano, premium_ate, sessoes_desde').eq('id', id).maybeSingle();
   const data = abrirConta(linha);
   const usuario = data // nunca expõe hash de senha nem código
     ? {
@@ -106,14 +107,22 @@ async function buscarUsuario(id) {
       premium_ate: ehPremium(data) ? data.premium_ate : null,
     }
     : null;
-  if (usuario) cacheUsuarios.set(id, { usuario, ate: Date.now() + 60_000 });
+  const sessoesDesde = data?.sessoes_desde ? Date.parse(data.sessoes_desde) : 0;
+  if (usuario) cacheUsuarios.set(id, { usuario, sessoesDesde, ate: Date.now() + 60_000 });
   return usuario;
+}
+
+// Login aceito: grava o cookie da sessão
+export function entrar(req, res, usuarioId) {
+  gravarCookie(req, res, criarToken(usuarioId), VALIDADE_MS);
 }
 
 // Coloca req.usuario quando há sessão válida (não bloqueia nada)
 export async function carregarSessao(req, _res, next) {
-  const id = lerToken(lerCookie(req));
-  req.usuario = id ? await buscarUsuario(id).catch(() => null) : null;
+  const token = lerToken(lerCookie(req));
+  req.usuario = token ? await buscarUsuario(token.id).catch(() => null) : null;
+  // Senha trocada depois que esta sessão foi aberta: a sessão antiga não vale mais
+  if (req.usuario && token.emitido < (cacheUsuarios.get(token.id)?.sessoesDesde || 0)) req.usuario = null;
   next();
 }
 
@@ -137,6 +146,34 @@ export function exigirLoginPagina(req, res, next) {
 // ---------- rotas ----------
 const emailValido = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
 
+// O domínio do e-mail existe e recebe mensagens? (pega "gmial.com", "hotmail.con"...)
+// Na dúvida (DNS lento ou fora), deixa passar: melhor do que barrar um e-mail certo.
+const CONHECIDOS = ['gmail.com', 'hotmail.com', 'hotmail.com.br', 'outlook.com', 'outlook.com.br', 'live.com', 'msn.com',
+  'yahoo.com', 'yahoo.com.br', 'icloud.com', 'me.com', 'bol.com.br', 'uol.com.br', 'terra.com.br', 'ig.com.br', 'globo.com', 'proton.me', 'protonmail.com'];
+const dominiosOk = new Map(CONHECIDOS.map((d) => [d, true]));
+let dnsFunciona = null, dnsConferidoEm = 0; // se nem o gmail.com resolve, o problema é o DNS do servidor, não o e-mail
+async function dominioRecebeEmail(email) {
+  const dominio = email.split('@')[1];
+  if (dominiosOk.has(dominio)) return dominiosOk.get(dominio);
+  const comPrazo = (p) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(Object.assign(new Error('demorou'), { code: 'TIMEOUT' })), 3000))]);
+  if (dnsFunciona === null || Date.now() - dnsConferidoEm > 5 * 60_000) {
+    dnsFunciona = await comPrazo(dns.resolveMx('gmail.com')).then(() => true, () => false);
+    dnsConferidoEm = Date.now();
+  }
+  if (!dnsFunciona) return true;
+  let ok = true;
+  try {
+    const mx = await comPrazo(dns.resolveMx(dominio));
+    ok = mx.some((m) => m.exchange && m.exchange !== '.'); // MX "." = domínio que declara não receber e-mail
+  } catch (e) {
+    if (e.code === 'ENOTFOUND' || e.code === 'NXDOMAIN') ok = false;
+    else if (e.code === 'ENODATA') ok = await comPrazo(dns.resolve4(dominio)).then((l) => l.length > 0, () => false); // sem MX, mas com endereço
+  }
+  if (dominiosOk.size > 5000) dominiosOk.clear();
+  dominiosOk.set(dominio, ok);
+  return ok;
+}
+
 export function rotasDeConta(app) {
   app.post('/api/cadastro', async (req, res) => {
     try {
@@ -148,6 +185,9 @@ export function rotasDeConta(app) {
 
       if (nome.length < 2) return res.status(400).json({ erro: 'Digite seu nome' });
       if (!emailValido(email)) return res.status(400).json({ erro: 'E-mail inválido' });
+      if (!(await dominioRecebeEmail(email))) {
+        return res.status(400).json({ erro: `O endereço "@${email.split('@')[1]}" não recebe e-mails. Confira se digitou certo.`, campo: 'email' });
+      }
       if (senha.length < 8) return res.status(400).json({ erro: 'A senha precisa ter pelo menos 8 caracteres' });
       if (req.body?.aceite !== true) return res.status(400).json({ erro: 'Pra criar a conta, aceite os Termos de uso e a Política de privacidade' });
 

@@ -66,7 +66,10 @@ Quem abre o site sem estar logado vê a página de apresentação (`public/lp.ht
 - **Trocar a chave:** gere uma nova (`npm run gerar-chave`), coloque a nova em `CHAVE_DADOS` e a antiga em `CHAVE_DADOS_ANTIGAS`. Ao subir, o servidor regrava tudo com a nova. Depois de ver no log que terminou, pode apagar a antiga.
 - **Perdeu a chave = perdeu os dados.** Guarde uma cópia da `CHAVE_DADOS` num gerenciador de senhas. Sem ela, nem você consegue ler os dados cifrados.
 - **Login:** 5 senhas erradas na mesma conta travam o login dela por 15 minutos. 20 erros vindos do mesmo IP (tentando vários e-mails) também travam por 15 minutos. Cada erro ainda demora meio segundo a mais pra responder, o que deixa o chute de senha bem lento.
-- **Cadastro:** no máximo 5 contas novas por hora vindas do mesmo IP.
+- **Cadastro:** no máximo 5 contas novas por hora vindas do mesmo IP. O e-mail é conferido de dois jeitos: a tela sugere a correção de erro de digitação ("gmial.com" → "Você quis dizer gmail.com?") e o servidor recusa domínio que não recebe e-mail (consulta o DNS; se o DNS estiver fora, deixa passar).
+- **Entrar com código no WhatsApp:** na tela de login, "Entrar com código no WhatsApp" manda um código de 6 números pro WhatsApp confirmado da conta (vale 10 minutos, 5 tentativas). Funciona com ou sem o 9 na frente do número.
+- **Esqueci minha senha:** a pessoa digita o e-mail (ou o WhatsApp), recebe o código no WhatsApp e cria uma senha nova. Ao trocar a senha, as sessões abertas em outros aparelhos caem. A resposta é sempre a mesma, exista a conta ou não, pra ninguém descobrir quem tem cadastro. Só funciona pra quem já confirmou o WhatsApp; quem não confirmou precisa falar com o admin.
+- **Limites dos códigos:** 1 código por minuto e 5 por hora por conta, 10 pedidos por hora por IP e 20 códigos errados por IP a cada 15 minutos.
 - **Ícone e cor:** cada lembrete pode ter um ícone e uma cor próprios (são 23 ícones e 9 cores). Se a pessoa não escolher, vale o padrão do tipo.
 - **Página 404:** qualquer endereço que não existe mostra uma página animada com o botão "Ir pro início".
 - **Carregamento:** enquanto o painel carrega, aparecem caixas cinzas piscando no formato do conteúdo.

@@ -161,6 +161,13 @@ create table if not exists public.asaas_pagamentos (
 );
 create index if not exists asaas_pagamentos_conta_idx on public.asaas_pagamentos (conta_id);
 
+-- 3f) Entrar com código no WhatsApp e "Esqueci minha senha"
+alter table public.contas add column if not exists acesso_codigo_hash   text;         -- hash do código de 6 números
+alter table public.contas add column if not exists acesso_codigo_expira timestamptz;
+alter table public.contas add column if not exists acesso_tentativas    int not null default 0;
+alter table public.contas add column if not exists acesso_motivo        text;         -- login | senha
+alter table public.contas add column if not exists sessoes_desde        timestamptz;  -- sessões abertas antes disso não valem (troca de senha)
+
 -- 4) Sessão do WhatsApp do sistema (o seu chip)
 create table if not exists public.sistema_auth (
   id         text primary key,

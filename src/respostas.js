@@ -59,7 +59,7 @@ function variantesBR(numero) {
   else if (/^55\d{2}[6-9]\d{7}$/.test(n)) lista.push(`${n.slice(0, 4)}9${n.slice(4)}`);
   return lista;
 }
-const indicesDoNumero = (numero) => variantesBR(numero).map((v) => indice('jid', `${v}@s.whatsapp.net`));
+export const indicesDoNumero = (numero) => variantesBR(numero).map((v) => indice('jid', `${v}@s.whatsapp.net`));
 
 // Conta criada, mas que ainda não digitou o código de confirmação deste número
 async function contaPendentePeloNumero(numero) {
