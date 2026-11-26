@@ -96,8 +96,9 @@ const cacheUsuarios = new Map(); // id -> { usuario, ate } (evita ir no banco a 
 async function buscarUsuario(id) {
   const c = cacheUsuarios.get(id);
   if (c && c.ate > Date.now()) return c.usuario;
-  const { data: linha } = await supabase
+  const { data: linha, error } = await supabase
     .from('contas').select('id, nome, email, telefone, telefone_verificado_em, plano, premium_ate, sessoes_desde').eq('id', id).maybeSingle();
+  if (error) throw error;
   const data = abrirConta(linha);
   const usuario = data // nunca expõe hash de senha nem código
     ? {
@@ -120,7 +121,9 @@ export function entrar(req, res, usuarioId) {
 // Coloca req.usuario quando há sessão válida (não bloqueia nada)
 export async function carregarSessao(req, _res, next) {
   const token = lerToken(lerCookie(req));
-  req.usuario = token ? await buscarUsuario(token.id).catch(() => null) : null;
+  req.usuario = token
+    ? await buscarUsuario(token.id).catch((e) => { console.error(`Sessão recusada (${String(token.id).slice(0, 8)}): ${e.message}`); return null; })
+    : null;
   // Senha trocada depois que esta sessão foi aberta: a sessão antiga não vale mais
   if (req.usuario && token.emitido < (cacheUsuarios.get(token.id)?.sessoesDesde || 0)) req.usuario = null;
   next();
