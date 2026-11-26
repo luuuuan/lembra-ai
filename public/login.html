@@ -298,7 +298,7 @@ async function enviarFormulario(form, url, dados, msgId) {
     const j = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(j.erro || 'Algo deu errado, tente de novo');
     mensagem(msgId, 'Tudo certo! Entrando...', 'ok');
-    setTimeout(() => location.replace('/painel'), 350);
+    setTimeout(() => location.replace('/'), 350);
   } catch (e) {
     mensagem(msgId, e.message);
     botao.disabled = false; botao.classList.remove('carregando');
